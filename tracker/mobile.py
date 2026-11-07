@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import os
 import sqlite3
 from datetime import date
@@ -1032,20 +1033,29 @@ def main(page: ft.Page) -> None:
 
     page.on_route_change = _on_route
 
+    icon_widget = ft.Image(
+        src="/icon.png",
+        width=48,
+        height=48,
+        fit=ft.BoxFit.CONTAIN,
+        border_radius=12,
+        error_content=ft.Icon(
+            ft.Icons.LOCAL_FIRE_DEPARTMENT,
+            color=DUO_ORANGE,
+            size=28,
+        ),
+    )
+
     header = ft.Container(
-        padding=ft.Padding.symmetric(horizontal=18, vertical=14),
+        padding=ft.Padding.symmetric(horizontal=18, vertical=12),
         bgcolor=DUO_GREEN,
         border_radius=24,
         content=ft.Row(
             [
                 ft.Container(
-                    content=ft.Icon(
-                        ft.Icons.LOCAL_FIRE_DEPARTMENT,
-                        color=DUO_ORANGE,
-                        size=28,
-                    ),
+                    content=icon_widget,
                     bgcolor=DUO_WHITE,
-                    padding=8,
+                    padding=2,
                     border_radius=16,
                 ),
                 ft.Column(
@@ -1088,4 +1098,5 @@ def main(page: ft.Page) -> None:
 
 
 if __name__ == "__main__":
-    ft.run(main)
+    assets_path = str(PROJECT_ROOT / "assets")
+    ft.run(main, assets_dir=assets_path)
