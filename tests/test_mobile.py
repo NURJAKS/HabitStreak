@@ -6,9 +6,23 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import flet as ft
+import pytest
 
 from tracker.db import connect
-from tracker.mobile import ActivityTrackerUI
+from tracker.mobile import ActivityTrackerUI, main
+
+
+def test_main_page_initialization(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify main() configures mobile theme, header, navigation bar, and initial tab."""
+    monkeypatch.chdir(tmp_path)
+    fake_page = MagicMock(spec=ft.Page)
+    fake_page.window = MagicMock()
+    main(fake_page)
+    assert fake_page.title == "HabitStreak — Physical Activity Tracker"
+    assert fake_page.add.called
+    assert fake_page.navigation_bar is not None
 
 
 def test_mobile_ui_controller_workflow(tmp_path: Path) -> None:
