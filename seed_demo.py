@@ -42,8 +42,10 @@ def seed_database(db_path: str = DEFAULT_DB_NAME) -> None:
         # Activity 2: 5-day streak (missed 6 days ago, completed last 5 days)
         if offset != 5:
             log_progress(db, act_ids[1], day_str, 11200.0, "Campus walk")
-        # Activity 3: Completed every other day
-        if offset % 2 == 0:
+        # Activity 3: Completed on even offsets, 35/50 (70%) today for visual demo
+        if offset == 0:
+            log_progress(db, act_ids[2], day_str, 35.0, "2 sets done, 15 reps left")
+        elif offset % 2 == 0:
             log_progress(db, act_ids[2], day_str, 60.0, "3 sets of 20")
         else:
             log_progress(db, act_ids[2], day_str, 25.0, "Partial warmup")

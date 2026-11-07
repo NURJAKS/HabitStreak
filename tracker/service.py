@@ -215,16 +215,31 @@ def calculate_streak(
 def list_activities(
     db: sqlite3.Connection, reference_date: str | None = None
 ) -> list[dict[str, Any]]:
-    """List all activities enriched with their current and longest streaks."""
+    """List all activities enriched with streaks and today's progress ratio."""
     rows = db.execute(
         "SELECT id, title, category, target_value, unit, created_at "
         "FROM activities ORDER BY id ASC"
     ).fetchall()
+    day_str = (
+        parse_date(reference_date).strftime(DATE_FMT)
+        if reference_date
+        else date.today().strftime(DATE_FMT)
+    )
+    today_rows = db.execute(
+        "SELECT activity_id, actual_value FROM activity_logs WHERE log_date = ?",
+        (day_str,),
+    ).fetchall()
+    today_map = {int(r["activity_id"]): float(r["actual_value"]) for r in today_rows}
+
     result: list[dict[str, Any]] = []
     for row in rows:
         item = dict(row)
         streaks = calculate_streak(db, item["id"], reference_date=reference_date)
+        today_val = today_map.get(item["id"], 0.0)
+        target_val = float(item["target_value"])
         item.update(streaks)
+        item["today_value"] = today_val
+        item["today_progress"] = min(1.0, round(today_val / target_val, 3))
         result.append(item)
     return result
 
