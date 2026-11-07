@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from datetime import date
 from pathlib import Path
@@ -26,8 +27,19 @@ from tracker.service import (
 )
 
 MOBILE_WIDTH = 430
-MOBILE_HEIGHT = 880
+MOBILE_HEIGHT = 900
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BACKUP_PATH = "backups/tracker_backup.json"
+
+
+def _resolve_app_path(rel_path: str) -> Path:
+    """Resolve relative paths against project root when running inside .flet."""
+    candidate = Path(rel_path)
+    if candidate.is_absolute():
+        return candidate
+    if ".flet" in str(Path.cwd()):
+        return PROJECT_ROOT / candidate
+    return candidate
 
 
 def _make_badge(text: str, bg: str, fg: str) -> ft.Container:
@@ -55,43 +67,59 @@ class ActivityTrackerUI:
             visible=False,
         )
         self.body_container = ft.Column(
-            expand=True, scroll=ft.ScrollMode.AUTO, spacing=12
+            expand=True, scroll=ft.ScrollMode.AUTO, spacing=10
         )
         self._init_inputs()
 
     def _init_inputs(self) -> None:
         """Create input controls used across the mobile tabs."""
         self.title_in = ft.TextField(
-            label="Goal Title (e.g. Morning Run)", border_radius=10
+            label="Goal Title (e.g. Morning Run)",
+            expand=True,
+            dense=True,
         )
         self.cat_dd = ft.Dropdown(
             label="Category",
             value=VALID_CATEGORIES[0],
             options=[ft.DropdownOption(key=c, text=c) for c in VALID_CATEGORIES],
-            width=175,
+            width=165,
+            dense=True,
         )
         self.target_in = ft.TextField(
-            label="Daily Target (e.g. 5)", width=175, border_radius=10
+            label="Target (e.g. 5)",
+            expand=True,
+            dense=True,
         )
         self.unit_in = ft.TextField(
-            label="Unit (km, mins, reps)", width=175, border_radius=10
+            label="Unit (km, reps)",
+            expand=True,
+            dense=True,
         )
 
-        self.log_act_dd = ft.Dropdown(label="Select Activity", width=360)
+        self.log_act_dd = ft.Dropdown(
+            label="Select Activity", width=350, dense=True
+        )
         self.log_date_in = ft.TextField(
             label="Date (YYYY-MM-DD)",
             value=date.today().strftime(DATE_FMT),
-            width=175,
-            border_radius=10,
+            expand=True,
+            dense=True,
         )
         self.log_val_in = ft.TextField(
-            label="Achieved Value", width=175, border_radius=10
+            label="Achieved Value",
+            expand=True,
+            dense=True,
         )
-        self.log_notes_in = ft.TextField(label="Notes (optional)", border_radius=10)
+        self.log_notes_in = ft.TextField(
+            label="Notes (optional)",
+            expand=True,
+            dense=True,
+        )
         self.backup_path_in = ft.TextField(
             label="Backup File (.json)",
             value=DEFAULT_BACKUP_PATH,
-            border_radius=10,
+            expand=True,
+            dense=True,
         )
 
     def notify(self, message: str, is_error: bool = False) -> None:
@@ -127,9 +155,9 @@ class ActivityTrackerUI:
             wrap=True,
         )
         return ft.Card(
-            elevation=2,
+            elevation=1,
             content=ft.Container(
-                padding=14,
+                padding=12,
                 content=ft.Column(
                     [
                         ft.Row(
@@ -139,12 +167,12 @@ class ActivityTrackerUI:
                                         ft.Text(
                                             item["title"],
                                             weight=ft.FontWeight.BOLD,
-                                            size=16,
+                                            size=15,
                                         ),
                                         ft.Text(
                                             f"{item['category']} • Daily Goal: "
                                             f"{item['target_value']} {item['unit']}",
-                                            size=13,
+                                            size=12,
                                             color=ft.Colors.BLUE_GREY_700,
                                         ),
                                     ],
@@ -161,7 +189,7 @@ class ActivityTrackerUI:
                         ),
                         badges,
                     ],
-                    spacing=10,
+                    spacing=8,
                 ),
             ),
         )
@@ -215,12 +243,16 @@ class ActivityTrackerUI:
         form_card = ft.Card(
             elevation=1,
             content=ft.Container(
-                padding=14,
+                padding=12,
                 content=ft.Column(
                     [
-                        ft.Text("Create New Habit Goal", weight=ft.FontWeight.BOLD, size=15),
-                        self.title_in,
-                        ft.Row([self.cat_dd, self.target_in]),
+                        ft.Text(
+                            "Create New Habit Goal",
+                            weight=ft.FontWeight.BOLD,
+                            size=15,
+                        ),
+                        ft.Row([self.title_in]),
+                        ft.Row([self.cat_dd, self.target_in], spacing=10),
                         ft.Row(
                             [
                                 self.unit_in,
@@ -230,10 +262,10 @@ class ActivityTrackerUI:
                                     on_click=self._on_add_activity,
                                 ),
                             ],
-                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            spacing=10,
                         ),
                     ],
-                    spacing=10,
+                    spacing=8,
                 ),
             ),
         )
@@ -243,7 +275,7 @@ class ActivityTrackerUI:
         return [
             summary_row,
             form_card,
-            ft.Text("Your Activity Streaks", size=17, weight=ft.FontWeight.BOLD),
+            ft.Text("Your Activity Streaks", size=16, weight=ft.FontWeight.BOLD),
             *cards,
         ]
 
@@ -279,12 +311,12 @@ class ActivityTrackerUI:
         if activities and not self.log_act_dd.value:
             self.log_act_dd.value = str(activities[0]["id"])
 
-        logs = get_activity_logs(self.db)[:12]
+        logs = get_activity_logs(self.db)[:10]
         log_cards = [
             ft.Card(
                 elevation=1,
                 content=ft.Container(
-                    padding=12,
+                    padding=10,
                     content=ft.Row(
                         [
                             ft.Column(
@@ -292,12 +324,13 @@ class ActivityTrackerUI:
                                     ft.Text(
                                         f"{r['activity_title']} — {r['log_date']}",
                                         weight=ft.FontWeight.BOLD,
+                                        size=14,
                                     ),
                                     ft.Text(
                                         f"{r['actual_value']} / {r['target_value']} "
                                         f"{r['unit']}"
                                         + (f" • {r['notes']}" if r["notes"] else ""),
-                                        size=13,
+                                        size=12,
                                         color=ft.Colors.BLUE_GREY_700,
                                     ),
                                 ],
@@ -323,28 +356,28 @@ class ActivityTrackerUI:
             ft.Card(
                 elevation=1,
                 content=ft.Container(
-                    padding=14,
+                    padding=12,
                     content=ft.Column(
                         [
                             ft.Text(
                                 "Record Daily Check-In",
-                                size=16,
+                                size=15,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             self.log_act_dd,
-                            ft.Row([self.log_date_in, self.log_val_in]),
-                            self.log_notes_in,
+                            ft.Row([self.log_date_in, self.log_val_in], spacing=10),
+                            ft.Row([self.log_notes_in]),
                             ft.FilledButton(
                                 content="Save Check-In",
                                 icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
                                 on_click=self._on_log_progress,
                             ),
                         ],
-                        spacing=10,
+                        spacing=8,
                     ),
                 ),
             ),
-            ft.Text("Recent Check-In History", size=17, weight=ft.FontWeight.BOLD),
+            ft.Text("Recent Check-In History", size=16, weight=ft.FontWeight.BOLD),
             *(log_cards or [ft.Text("No check-ins recorded yet.")]),
         ]
 
@@ -354,14 +387,14 @@ class ActivityTrackerUI:
         day_bars = [
             ft.Row(
                 [
-                    ft.Text(d["date"], width=95, size=13),
+                    ft.Text(d["date"], width=90, size=12),
                     ft.ProgressBar(
                         value=(
                             d["completed_count"] / rep["total_activities"]
                             if rep["total_activities"]
                             else 0
                         ),
-                        width=165,
+                        width=160,
                         color=ft.Colors.INDIGO_600,
                         bgcolor=ft.Colors.INDIGO_50,
                     ),
@@ -379,14 +412,18 @@ class ActivityTrackerUI:
             ft.Card(
                 elevation=1,
                 content=ft.Container(
-                    padding=12,
+                    padding=10,
                     content=ft.Column(
                         [
                             ft.Row(
                                 [
-                                    ft.Text(s["title"], weight=ft.FontWeight.BOLD),
+                                    ft.Text(
+                                        s["title"],
+                                        weight=ft.FontWeight.BOLD,
+                                        size=14,
+                                    ),
                                     _make_badge(
-                                        f"{s['completed_days']}/7 days ({s['completion_rate']}%)",
+                                        f"{s['completed_days']}/7d ({s['completion_rate']}%)",
                                         ft.Colors.INDIGO_50,
                                         ft.Colors.INDIGO_900,
                                     ),
@@ -395,7 +432,7 @@ class ActivityTrackerUI:
                             ),
                             ft.Text(
                                 f"7-Day Cumulative Volume: {s['total_value']} {s['unit']}",
-                                size=13,
+                                size=12,
                                 color=ft.Colors.BLUE_GREY_700,
                             ),
                         ],
@@ -409,19 +446,19 @@ class ActivityTrackerUI:
             ft.Card(
                 elevation=2,
                 content=ft.Container(
-                    padding=14,
+                    padding=12,
                     bgcolor=ft.Colors.INDIGO_50,
                     border_radius=12,
                     content=ft.Column(
                         [
                             ft.Text(
                                 f"7-Day Report ({rep['start_date']} → {rep['end_date']})",
-                                size=13,
+                                size=12,
                                 color=ft.Colors.INDIGO_900,
                             ),
                             ft.Text(
                                 f"Overall Completion: {rep['completion_rate']}%",
-                                size=20,
+                                size=19,
                                 weight=ft.FontWeight.BOLD,
                                 color=ft.Colors.INDIGO_900,
                             ),
@@ -436,34 +473,39 @@ class ActivityTrackerUI:
                                 size=12,
                             ),
                         ],
-                        spacing=6,
+                        spacing=5,
                     ),
                 ),
             ),
             ft.Card(
                 elevation=1,
                 content=ft.Container(
-                    padding=14,
+                    padding=12,
                     content=ft.Column(
                         [
-                            ft.Text("Daily Goal Breakdown", weight=ft.FontWeight.BOLD),
+                            ft.Text(
+                                "Daily Goal Breakdown",
+                                weight=ft.FontWeight.BOLD,
+                                size=14,
+                            ),
                             *day_bars,
                         ],
-                        spacing=8,
+                        spacing=6,
                     ),
                 ),
             ),
-            ft.Text("Per-Activity Weekly Volume", size=17, weight=ft.FontWeight.BOLD),
+            ft.Text("Per-Activity Weekly Volume", size=16, weight=ft.FontWeight.BOLD),
             *(act_cards or [ft.Text("Add activities to view weekly analytics.")]),
         ]
 
     def _on_export_backup(self, _: Any = None) -> None:
         """Handle exporting database state to JSON."""
         try:
-            meta = export_backup(self.db, self.backup_path_in.value or "")
+            target = _resolve_app_path(self.backup_path_in.value or "")
+            meta = export_backup(self.db, target)
             self.notify(
                 f"Exported {meta['activities_count']} goals and "
-                f"{meta['logs_count']} logs to {meta['file_path']}"
+                f"{meta['logs_count']} logs!"
             )
             self.render_tab(3)
         except TrackerError as exc:
@@ -472,10 +514,11 @@ class ActivityTrackerUI:
     def _on_restore_backup(self, _: Any = None) -> None:
         """Handle restoring database state from JSON."""
         try:
-            meta = restore_backup(self.db, self.backup_path_in.value or "")
+            source = _resolve_app_path(self.backup_path_in.value or "")
+            meta = restore_backup(self.db, source)
             self.notify(
                 f"Restored {meta['activities_count']} goals and "
-                f"{meta['logs_count']} logs from {meta['file_path']}"
+                f"{meta['logs_count']} logs!"
             )
             self.render_tab(3)
         except TrackerError as exc:
@@ -503,7 +546,7 @@ class ActivityTrackerUI:
                             ft.Column(
                                 [
                                     ft.Text(
-                                        h["file_path"],
+                                        Path(h["file_path"]).name,
                                         weight=ft.FontWeight.BOLD,
                                         size=13,
                                     ),
@@ -527,21 +570,21 @@ class ActivityTrackerUI:
             ft.Card(
                 elevation=1,
                 content=ft.Container(
-                    padding=14,
+                    padding=12,
                     content=ft.Column(
                         [
                             ft.Text(
                                 "Offline JSON Backup & Restore",
-                                size=16,
+                                size=15,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             ft.Text(
                                 "Export all habits and streak logs to a portable JSON "
                                 "snapshot or restore atomically.",
-                                size=13,
+                                size=12,
                                 color=ft.Colors.BLUE_GREY_700,
                             ),
-                            self.backup_path_in,
+                            ft.Row([self.backup_path_in]),
                             ft.Row(
                                 [
                                     ft.FilledButton(
@@ -558,11 +601,11 @@ class ActivityTrackerUI:
                                 spacing=10,
                             ),
                         ],
-                        spacing=10,
+                        spacing=8,
                     ),
                 ),
             ),
-            ft.Text("Backup Audit History", size=17, weight=ft.FontWeight.BOLD),
+            ft.Text("Backup Audit History", size=16, weight=ft.FontWeight.BOLD),
             *(hist_cards or [ft.Text("No backup operations performed yet.")]),
         ]
 
@@ -586,14 +629,26 @@ def main(page: ft.Page) -> None:
     page.bgcolor = ft.Colors.GREY_50
     page.window.width = MOBILE_WIDTH
     page.window.height = MOBILE_HEIGHT
-    page.padding = 14
+    page.padding = 12
 
-    db_path = Path(DEFAULT_DB_NAME)
+    db_path = _resolve_app_path(DEFAULT_DB_NAME)
     db = connect(db_path)
     controller = ActivityTrackerUI(page, db)
+    route_map = {"/0": 0, "/1": 1, "/2": 2, "/3": 3}
+    initial_tab = route_map.get(
+        page.route, int(os.environ.get("TRACKER_INITIAL_TAB", "0"))
+    )
+
+    def _on_route(e: Any) -> None:
+        tab_idx = route_map.get(page.route, 0)
+        if page.navigation_bar:
+            page.navigation_bar.selected_index = tab_idx
+        controller.render_tab(tab_idx)
+
+    page.on_route_change = _on_route
 
     header = ft.Container(
-        padding=ft.Padding.symmetric(horizontal=14, vertical=12),
+        padding=ft.Padding.symmetric(horizontal=14, vertical=10),
         bgcolor=ft.Colors.INDIGO_700,
         border_radius=12,
         content=ft.Row(
@@ -601,19 +656,19 @@ def main(page: ft.Page) -> None:
                 ft.Icon(
                     ft.Icons.LOCAL_FIRE_DEPARTMENT,
                     color=ft.Colors.ORANGE_300,
-                    size=28,
+                    size=26,
                 ),
                 ft.Column(
                     [
                         ft.Text(
                             "HabitStreak Tracker",
-                            size=19,
+                            size=18,
                             weight=ft.FontWeight.BOLD,
                             color=ft.Colors.WHITE,
                         ),
                         ft.Text(
                             "Daily Activity Goals • Streaks • Analytics",
-                            size=12,
+                            size=11,
                             color=ft.Colors.INDIGO_100,
                         ),
                     ],
@@ -625,7 +680,7 @@ def main(page: ft.Page) -> None:
     )
 
     page.navigation_bar = ft.NavigationBar(
-        selected_index=0,
+        selected_index=initial_tab,
         on_change=lambda e: controller.render_tab(int(e.control.selected_index or 0)),
         destinations=[
             ft.NavigationBarDestination(
@@ -637,7 +692,7 @@ def main(page: ft.Page) -> None:
         ],
     )
     page.add(header, controller.banner_box, controller.body_container)
-    controller.render_tab(0)
+    controller.render_tab(initial_tab)
 
 
 if __name__ == "__main__":
