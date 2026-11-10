@@ -68,6 +68,19 @@ flet run tracker/mobile.py
 3. Tap **Export Backup** to save all habits and logs to disk.
 4. Tap **Restore Backup** at any time to validate and atomically restore your habits and logs from that `.json` file.
 
+### Scenario 5: How to Switch Languages (KZ, RU, EN)
+1. Locate the trilingual switch capsule (`[ KZ | RU | EN ]`) in the top right of the persistent header bar.
+2. Tap any language pill:
+   * **KZ (Қазақша)**: Instantly translates the header, navigation tabs, modal dialogs, category badges, KPI stats, weekly analysis, and notifications to Kazakh.
+   * **RU (Русский)**: Instantly translates all interface elements, form fields, and messages to Russian.
+   * **EN (English)**: Restores the default international English interface.
+
+### Scenario 6: How to Toggle Dark and Light Themes
+1. Locate the theme toggle button (☀️ / 🌙) directly next to the language switcher in the top header.
+2. Tap the button to toggle between:
+   * **Light Mode (Duolingo Flat 2.0)**: Crisp `#F7F7F7` canvas, clean white cards `#FFFFFF`, and high-contrast typography.
+   * **Dark Mode (Duolingo Obsidian Slate)**: Deep `#131F24` background, `#202F36` slate cards with subtle borders, and vivid neon accent badges for night use.
+
 ---
 
 ## 4. Error Messages and Troubleshooting
