@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+from tracker.auth import register_user, set_active_session
 from tracker.db import DEFAULT_DB_NAME, connect
 from tracker.service import (
     DATE_FMT,
@@ -15,8 +16,25 @@ from tracker.service import (
 
 
 def seed_database(db_path: str = DEFAULT_DB_NAME) -> None:
-    """Populate SQLite database with sample habits, streaks, and a backup."""
+    """Populate SQLite database with sample habits, streaks, profile, and a backup."""
     db = connect(db_path)
+
+    # Seed demo user account
+    try:
+        user = register_user(
+            db,
+            username="alex",
+            password="streak2026",
+            full_name="Alex Johnson",
+            age=22,
+            weight=73.5,
+            height=178.0,
+            personal_goals="Run 10km weekly, maintain a 30-day streak, and drink 2.5L water daily.",
+        )
+        set_active_session(db, int(user["id"]))
+    except TrackerError:
+        pass
+
     samples = [
         ("Morning Run", "Cardio", 5.0, "km"),
         ("Daily 10k Steps", "Steps", 10000.0, "steps"),

@@ -81,6 +81,28 @@ flet run tracker/mobile.py
    * **Light Mode (Duolingo Flat 2.0)**: Crisp `#F7F7F7` canvas, clean white cards `#FFFFFF`, and high-contrast typography.
    * **Dark Mode (Duolingo Obsidian Slate)**: Deep `#131F24` background, `#202F36` slate cards with subtle borders, and vivid neon accent badges for night use.
 
+### Scenario 7: How to Log In or Register an Account
+1. On first launch (or after logging out), the **Welcome / Authentication** card appears.
+2. Toggle between **Log In** and **Sign Up**:
+   * **Sign Up**: Enter your desired Username, Password (at least 4 characters), and Full Name. Tap **CREATE ACCOUNT**.
+   * **Log In**: Enter your registered Username and Password. Tap **LOG IN**.
+   * **Guest Mode**: Tap **Continue as Guest** for instant one-click access without entering any credentials.
+3. Upon successful authentication, your session is saved locally in SQLite so you remain logged in across app restarts.
+
+### Scenario 8: How to Manage Your Athlete Profile & Body Metrics
+1. Tap the **👤 Profile** tab on the bottom navigation bar.
+2. View your personalized Athlete Card with your avatar, `@username`, and join date.
+3. Inspect your lifetime summary KPIs: **Active Goals**, **Longest Streak**, and **Total Check-ins**.
+4. Fill in or edit your body metrics:
+   * **Full Name**
+   * **Age** (years)
+   * **Weight** (kg)
+   * **Height** (cm)
+   * **Personal Fitness Goals** (e.g. *Run 10km weekly, reach 72kg, maintain a 30-day streak*)
+5. As soon as weight and height are provided, your **Body Mass Index (BMI)** and health category (*Underweight*, *Normal Weight*, *Overweight*, *Obese*) are automatically calculated and color-coded.
+6. Tap **SAVE PROFILE** to persist your profile updates.
+7. To log out or switch users, scroll down and tap **LOG OUT**.
+
 ---
 
 ## 4. Error Messages and Troubleshooting

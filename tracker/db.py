@@ -35,6 +35,25 @@ CREATE TABLE IF NOT EXISTS backup_records (
     logs_count INTEGER NOT NULL CHECK (logs_count >= 0),
     action TEXT NOT NULL CHECK (action IN ('EXPORT', 'RESTORE'))
 );
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    full_name TEXT NOT NULL DEFAULT '',
+    age INTEGER DEFAULT NULL,
+    weight REAL DEFAULT NULL,
+    height REAL DEFAULT NULL,
+    personal_goals TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS session (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    active_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at TEXT NOT NULL
+);
 """
 
 

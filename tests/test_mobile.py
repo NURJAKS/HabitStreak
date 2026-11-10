@@ -28,13 +28,22 @@ def test_main_page_initialization(
 
 
 def test_mobile_ui_controller_workflow(tmp_path: Path) -> None:
-    """Verify all 4 mobile UI tabs, BottomSheet, Slider, Boosts, and Backup."""
+    """Verify all 5 mobile UI tabs, BottomSheet, Slider, Boosts, Profile, and Backup."""
     fake_page = MagicMock(spec=ft.Page)
     db = connect(":memory:")
     ui = ActivityTrackerUI(fake_page, db)
 
-    # Render empty states across all 4 tabs
-    for tab_idx in range(4):
+    # Initial state gates on auth screen
+    assert ui.current_user is None
+    ui.render_tab(0)
+    assert fake_page.update.called
+
+    # Log in as guest to enter main app
+    ui._on_guest_login()
+    assert ui.current_user is not None
+
+    # Render empty states across all 5 tabs
+    for tab_idx in range(5):
         ui.render_tab(tab_idx)
     assert fake_page.update.called
 
@@ -120,10 +129,12 @@ def test_language_and_theme_switching() -> None:
             ft.NavigationBarDestination(icon=ft.Icons.CHECK, label="2"),
             ft.NavigationBarDestination(icon=ft.Icons.BAR_CHART, label="3"),
             ft.NavigationBarDestination(icon=ft.Icons.BACKUP, label="4"),
+            ft.NavigationBarDestination(icon=ft.Icons.PERSON, label="5"),
         ]
     )
     db = connect(":memory:")
     ui = ActivityTrackerUI(fake_page, db)
+    ui._on_guest_login()
 
     # Initial state
     assert ui.lang == "en"
@@ -152,4 +163,80 @@ def test_language_and_theme_switching() -> None:
     ui.toggle_theme()
     assert ui.is_dark is False
     assert fake_page.theme_mode == ft.ThemeMode.LIGHT
+
+
+def test_auth_and_profile_workflows() -> None:
+    """Verify registration, login, profile updates, BMI calculation, and logout."""
+    fake_page = MagicMock(spec=ft.Page)
+    fake_page.navigation_bar = ft.NavigationBar(
+        destinations=[
+            ft.NavigationBarDestination(icon=ft.Icons.HOME, label="1"),
+            ft.NavigationBarDestination(icon=ft.Icons.CHECK, label="2"),
+            ft.NavigationBarDestination(icon=ft.Icons.BAR_CHART, label="3"),
+            ft.NavigationBarDestination(icon=ft.Icons.BACKUP, label="4"),
+            ft.NavigationBarDestination(icon=ft.Icons.PERSON, label="5"),
+        ]
+    )
+    db = connect(":memory:")
+    ui = ActivityTrackerUI(fake_page, db)
+
+    # 1. Switch auth modes
+    ui._on_switch_auth_mode("register")
+    assert ui.auth_mode == "register"
+    assert ui.auth_name_in.visible is True
+
+    ui._on_switch_auth_mode("login")
+    assert ui.auth_mode == "login"
+    assert ui.auth_name_in.visible is False
+
+    # 2. Registration validation failure
+    ui.auth_user_in.value = "ab"  # Too short
+    ui.auth_pass_in.value = "123"  # Too short
+    ui._on_register()
+    assert ui.last_error is True
+
+    # 3. Successful registration
+    ui.auth_user_in.value = "athlete_john"
+    ui.auth_pass_in.value = "secure2026"
+    ui.auth_name_in.value = "John Doe"
+    ui._on_register()
+    assert ui.current_user is not None
+    assert ui.current_user["username"] == "athlete_john"
+    assert "John" in ui.last_message
+
+    # 4. View and update profile
+    ui.render_tab(4)
+    ui.profile_name_in.value = "John Champion"
+    ui.profile_age_in.value = "24"
+    ui.profile_weight_in.value = "78.0"
+    ui.profile_height_in.value = "182.0"
+    ui.profile_goals_in.value = "Run 15km weekly and achieve 90% score"
+    ui._on_save_profile()
+    assert ui.last_error is False
+    assert ui.current_user["full_name"] == "John Champion"
+    assert ui.current_user["age"] == 24
+
+    # 5. Profile validation error handling
+    ui.profile_age_in.value = "invalid_age"
+    ui._on_save_profile()
+    assert ui.last_error is True
+
+    # 6. Logout workflow
+    ui._on_logout()
+    assert ui.current_user is None
+    assert fake_page.navigation_bar.visible is False
+
+    # 7. Login with bad credentials
+    ui.auth_user_in.value = "athlete_john"
+    ui.auth_pass_in.value = "wrong_password"
+    ui._on_login()
+    assert ui.current_user is None
+    assert ui.last_error is True
+
+    # 8. Successful login
+    ui.auth_pass_in.value = "secure2026"
+    ui._on_login()
+    assert ui.current_user is not None
+    assert ui.current_user["username"] == "athlete_john"
+
 

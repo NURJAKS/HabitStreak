@@ -13,6 +13,15 @@ from typing import Any
 
 import flet as ft
 
+from tracker.auth import (
+    calculate_bmi,
+    ensure_guest_user,
+    get_active_user,
+    login_user,
+    logout_user,
+    register_user,
+    update_profile,
+)
 from tracker.db import DEFAULT_DB_NAME, connect
 from tracker.i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, tr
 from tracker.service import (
@@ -20,6 +29,7 @@ from tracker.service import (
     VALID_CATEGORIES,
     TrackerError,
     add_activity,
+    calculate_streak,
     delete_activity,
     export_backup,
     get_activity_logs,
@@ -110,6 +120,7 @@ def _duo_button(
     bg: str = DUO_GREEN,
     fg: str = DUO_WHITE,
     expand: bool = False,
+    height: int = 48,
 ) -> ft.FilledButton:
     """Create a tactile Duolingo-style rounded button."""
     return ft.FilledButton(
@@ -117,7 +128,7 @@ def _duo_button(
         icon=icon,
         bgcolor=bg,
         color=fg,
-        height=48,
+        height=height,
         expand=expand,
         style=ft.ButtonStyle(
             shape=ft.RoundedRectangleBorder(radius=20),
@@ -145,6 +156,8 @@ class ActivityTrackerUI:
         self.current_tab = 0
         self.last_message = ""
         self.last_error = False
+        self.current_user: dict[str, Any] | None = get_active_user(self.db)
+        self.auth_mode = "login"
 
         self.body_container = ft.Column(
             expand=True, scroll=ft.ScrollMode.AUTO, spacing=14
@@ -296,6 +309,56 @@ class ActivityTrackerUI:
             border=rounded,
         )
 
+        # Auth Screen Inputs
+        self.auth_user_in = ft.TextField(
+            label=tr("field_username", self.lang),
+            prefix_icon=ft.Icons.PERSON,
+            border=rounded,
+        )
+        self.auth_pass_in = ft.TextField(
+            label=tr("field_password", self.lang),
+            prefix_icon=ft.Icons.LOCK,
+            password=True,
+            can_reveal_password=True,
+            border=rounded,
+        )
+        self.auth_name_in = ft.TextField(
+            label=tr("field_full_name", self.lang),
+            prefix_icon=ft.Icons.BADGE,
+            border=rounded,
+            visible=False,
+        )
+
+        # Profile Tab Inputs
+        self.profile_name_in = ft.TextField(
+            label=tr("field_full_name", self.lang),
+            prefix_icon=ft.Icons.PERSON,
+            border=rounded,
+        )
+        self.profile_age_in = ft.TextField(
+            label=tr("profile_field_age", self.lang),
+            prefix_icon=ft.Icons.CAKE,
+            border=rounded,
+        )
+        self.profile_weight_in = ft.TextField(
+            label=tr("profile_field_weight", self.lang),
+            prefix_icon=ft.Icons.MONITOR_WEIGHT,
+            border=rounded,
+        )
+        self.profile_height_in = ft.TextField(
+            label=tr("profile_field_height", self.lang),
+            prefix_icon=ft.Icons.HEIGHT,
+            border=rounded,
+        )
+        self.profile_goals_in = ft.TextField(
+            label=tr("profile_field_goals", self.lang),
+            hint_text=tr("profile_goals_hint", self.lang),
+            multiline=True,
+            min_lines=2,
+            max_lines=4,
+            border=rounded,
+        )
+
     def _update_localized_controls(self) -> None:
         """Update labels of all inputs, modals, navigation bar, and FAB on language/theme change."""
         t = self.theme
@@ -312,6 +375,17 @@ class ActivityTrackerUI:
         self.log_date_in.label = tr("field_date", self.lang)
         self.log_notes_in.label = tr("field_workout_note", self.lang)
         self.backup_path_in.label = tr("field_backup_file", self.lang)
+
+        self.auth_user_in.label = tr("field_username", self.lang)
+        self.auth_pass_in.label = tr("field_password", self.lang)
+        self.auth_name_in.label = tr("field_full_name", self.lang)
+
+        self.profile_name_in.label = tr("field_full_name", self.lang)
+        self.profile_age_in.label = tr("profile_field_age", self.lang)
+        self.profile_weight_in.label = tr("profile_field_weight", self.lang)
+        self.profile_height_in.label = tr("profile_field_height", self.lang)
+        self.profile_goals_in.label = tr("profile_field_goals", self.lang)
+        self.profile_goals_in.hint_text = tr("profile_goals_hint", self.lang)
 
         self.ring_bar.bgcolor = t["grey_bar"]
         self.ring_label.color = t["text"]
@@ -341,6 +415,10 @@ class ActivityTrackerUI:
                 ft.NavigationBarDestination(
                     icon=ft.Icons.BACKUP,
                     label=tr("tab_backup", self.lang),
+                ),
+                ft.NavigationBarDestination(
+                    icon=ft.Icons.PERSON,
+                    label=tr("tab_profile", self.lang),
                 ),
             ]
 
@@ -1292,14 +1370,463 @@ class ActivityTrackerUI:
             ),
         ]
 
+    def _on_switch_auth_mode(self, mode: str) -> None:
+        self.auth_mode = mode
+        self.auth_name_in.visible = mode == "register"
+        self.body_container.controls = self._build_auth_view()
+        self.page.update()
+
+    def _on_login(self, _evt: Any = None) -> None:
+        try:
+            user = login_user(
+                self.db,
+                self.auth_user_in.value or "",
+                self.auth_pass_in.value or "",
+            )
+            self.current_user = user
+            self.auth_pass_in.value = ""
+            if self.page.navigation_bar:
+                self.page.navigation_bar.visible = True
+            self.notify(
+                tr(
+                    "msg_logged_in",
+                    self.lang,
+                    name=user.get("full_name") or user.get("username", ""),
+                )
+            )
+            self.render_tab(0)
+        except TrackerError:
+            self.notify(tr("err_invalid_credentials", self.lang), is_error=True)
+
+    def _on_register(self, _evt: Any = None) -> None:
+        try:
+            user = register_user(
+                self.db,
+                username=self.auth_user_in.value or "",
+                password=self.auth_pass_in.value or "",
+                full_name=self.auth_name_in.value or "",
+            )
+            self.current_user = user
+            self.auth_pass_in.value = ""
+            if self.page.navigation_bar:
+                self.page.navigation_bar.visible = True
+            self.notify(
+                tr(
+                    "msg_registered",
+                    self.lang,
+                    name=user.get("full_name") or user.get("username", ""),
+                )
+            )
+            self.render_tab(4)
+        except TrackerError as exc:
+            err_map = {
+                "Username must be at least 3 characters": tr(
+                    "err_username_short", self.lang
+                ),
+                "Username already taken": tr("err_username_exists", self.lang),
+                "Password must be at least 4 characters": tr(
+                    "err_password_short", self.lang
+                ),
+            }
+            msg = err_map.get(str(exc), str(exc))
+            self.notify(msg, is_error=True)
+
+    def _on_guest_login(self, _evt: Any = None) -> None:
+        user = ensure_guest_user(self.db)
+        self.current_user = user
+        if self.page.navigation_bar:
+            self.page.navigation_bar.visible = True
+        self.notify(
+            tr(
+                "msg_logged_in",
+                self.lang,
+                name=user.get("full_name") or user.get("username", ""),
+            )
+        )
+        self.render_tab(0)
+
+    def _on_logout(self, _evt: Any = None) -> None:
+        logout_user(self.db)
+        self.current_user = None
+        if self.page.navigation_bar:
+            self.page.navigation_bar.visible = False
+        self.fab.visible = False
+        self.notify(tr("msg_logged_out", self.lang))
+        self.body_container.controls = self._build_auth_view()
+        self.page.update()
+
+    def _on_save_profile(self, _evt: Any = None) -> None:
+        if not self.current_user:
+            return
+        try:
+            raw_age = (self.profile_age_in.value or "").strip()
+            raw_weight = (self.profile_weight_in.value or "").strip()
+            raw_height = (self.profile_height_in.value or "").strip()
+            age_val = int(raw_age) if raw_age else None
+            weight_val = float(raw_weight) if raw_weight else None
+            height_val = float(raw_height) if raw_height else None
+            updated = update_profile(
+                self.db,
+                user_id=int(self.current_user["id"]),
+                full_name=self.profile_name_in.value or "",
+                age=age_val,
+                weight=weight_val,
+                height=height_val,
+                personal_goals=self.profile_goals_in.value or "",
+            )
+            self.current_user = updated
+            self.notify(tr("profile_msg_saved", self.lang))
+            self.render_tab(4)
+        except TrackerError as exc:
+            self.notify(f"Error: {exc}", is_error=True)
+        except ValueError:
+            self.notify(
+                "Error: Invalid numeric value for age, weight, or height", is_error=True
+            )
+
+    def _build_auth_view(self) -> list[ft.Control]:
+        """Render the Duolingo-styled Login and Registration authentication screen."""
+        t = self.theme
+        is_login = self.auth_mode == "login"
+        self.auth_name_in.visible = not is_login
+
+        def _mode_tab(label: str, mode: str) -> ft.Container:
+            active = self.auth_mode == mode
+            return ft.Container(
+                content=ft.Text(
+                    label,
+                    size=13,
+                    weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL,
+                    color=DUO_WHITE if active else t["subtext"],
+                ),
+                bgcolor=DUO_GREEN if active else ft.Colors.TRANSPARENT,
+                padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+                border_radius=16,
+                on_click=lambda _, m=mode: self._on_switch_auth_mode(m),
+            )
+
+        mode_switcher = ft.Container(
+            bgcolor=t["border"],
+            border_radius=18,
+            padding=3,
+            content=ft.Row(
+                [
+                    _mode_tab(tr("auth_tab_login", self.lang), "login"),
+                    _mode_tab(tr("auth_tab_register", self.lang), "register"),
+                ],
+                tight=True,
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+        )
+
+        icon_widget = ft.Image(
+            src="/icon.png",
+            width=72,
+            height=72,
+            fit=ft.BoxFit.CONTAIN,
+            border_radius=20,
+            error_content=ft.Icon(
+                ft.Icons.LOCAL_FIRE_DEPARTMENT,
+                color=DUO_ORANGE,
+                size=48,
+            ),
+        )
+
+        main_btn_label = (
+            tr("btn_login", self.lang) if is_login else tr("btn_register", self.lang)
+        )
+        main_btn_handler = self._on_login if is_login else self._on_register
+
+        card_content = ft.Column(
+            [
+                ft.Container(
+                    content=icon_widget,
+                    bgcolor=DUO_WHITE if self.is_dark else t["green_light"],
+                    padding=10,
+                    border_radius=28,
+                ),
+                ft.Text(
+                    tr("auth_welcome_title", self.lang),
+                    size=22,
+                    weight=ft.FontWeight.BOLD,
+                    color=t["text"],
+                    text_align=ft.TextAlign.CENTER,
+                ),
+                ft.Text(
+                    tr("auth_welcome_sub", self.lang),
+                    size=13,
+                    color=t["subtext"],
+                    text_align=ft.TextAlign.CENTER,
+                ),
+                ft.Container(height=6),
+                mode_switcher,
+                ft.Container(height=10),
+                self.auth_name_in,
+                self.auth_user_in,
+                self.auth_pass_in,
+                ft.Container(height=10),
+                _duo_button(
+                    main_btn_label,
+                    on_click=main_btn_handler,
+                    icon=ft.Icons.LOGIN if is_login else ft.Icons.PERSON_ADD,
+                    bg=DUO_GREEN,
+                    height=50,
+                ),
+                _duo_button(
+                    tr("btn_guest_mode", self.lang),
+                    on_click=self._on_guest_login,
+                    icon=ft.Icons.PLAY_ARROW_ROUNDED,
+                    bg=DUO_BLUE,
+                    height=46,
+                ),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=10,
+        )
+
+        return [self._card(card_content, padding=24)]
+
+    def _build_profile_tab(self) -> list[ft.Control]:
+        """Render the user profile tab with metrics, goals, BMI, and logout."""
+        t = self.theme
+        u = self.current_user or {}
+
+        # Sync input fields
+        self.profile_name_in.value = u.get("full_name") or u.get("username") or ""
+        self.profile_age_in.value = (
+            str(u.get("age")) if u.get("age") is not None else ""
+        )
+        self.profile_weight_in.value = (
+            str(u.get("weight")) if u.get("weight") is not None else ""
+        )
+        self.profile_height_in.value = (
+            str(u.get("height")) if u.get("height") is not None else ""
+        )
+        self.profile_goals_in.value = u.get("personal_goals") or ""
+
+        # Calculate high level stats
+        activities = list_activities(self.db)
+        best_streak = 0
+        for act in activities:
+            st = calculate_streak(self.db, int(act["id"]))
+            best_streak = max(best_streak, st["longest_streak"])
+
+        log_cnt_row = self.db.execute(
+            "SELECT COUNT(*) AS cnt FROM activity_logs"
+        ).fetchone()
+        total_logs = int(log_cnt_row["cnt"]) if log_cnt_row else 0
+
+        # Avatar Banner Card
+        created_date = (u.get("created_at") or "")[:10]
+        banner_card = self._card(
+            ft.Row(
+                [
+                    ft.Container(
+                        content=ft.Icon(ft.Icons.PERSON, size=40, color=DUO_WHITE),
+                        bgcolor=DUO_GREEN,
+                        padding=14,
+                        border_radius=30,
+                    ),
+                    ft.Column(
+                        [
+                            ft.Text(
+                                u.get("full_name") or u.get("username", "Athlete"),
+                                size=20,
+                                weight=ft.FontWeight.BOLD,
+                                color=t["text"],
+                            ),
+                            ft.Text(
+                                f"@{u.get('username', 'athlete')}",
+                                size=13,
+                                color=DUO_BLUE,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            ft.Text(
+                                tr(
+                                    "profile_member_since",
+                                    self.lang,
+                                    date=created_date or "2026",
+                                ),
+                                size=11,
+                                color=t["subtext"],
+                            ),
+                        ],
+                        spacing=2,
+                        expand=True,
+                    ),
+                ],
+                spacing=14,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            ),
+            padding=18,
+        )
+
+        # Quick KPI Row
+        def _mini_stat(
+            icon: Any, icon_color: str, val: str, label: str
+        ) -> ft.Container:
+            return ft.Container(
+                expand=True,
+                padding=12,
+                border_radius=18,
+                bgcolor=t["border"],
+                content=ft.Column(
+                    [
+                        ft.Icon(icon, size=24, color=icon_color),
+                        ft.Text(
+                            val, size=18, weight=ft.FontWeight.BOLD, color=t["text"]
+                        ),
+                        ft.Text(
+                            label,
+                            size=11,
+                            color=t["subtext"],
+                            no_wrap=True,
+                            overflow=ft.TextOverflow.ELLIPSIS,
+                        ),
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=2,
+                ),
+            )
+
+        kpi_row = ft.Row(
+            [
+                _mini_stat(
+                    ft.Icons.FITNESS_CENTER,
+                    DUO_BLUE,
+                    str(len(activities)),
+                    tr("stat_total_habits", self.lang),
+                ),
+                _mini_stat(
+                    ft.Icons.LOCAL_FIRE_DEPARTMENT,
+                    DUO_ORANGE,
+                    f"{best_streak}d",
+                    tr("stat_best_streak", self.lang),
+                ),
+                _mini_stat(
+                    ft.Icons.CHECK_CIRCLE,
+                    DUO_GREEN,
+                    str(total_logs),
+                    tr("stat_total_checkins", self.lang),
+                ),
+            ],
+            spacing=10,
+        )
+
+        # BMI Metric Pill
+        bmi_result = calculate_bmi(u.get("weight"), u.get("height"))
+        if bmi_result:
+            bmi_val, cat_key = bmi_result
+            bmi_colors = {
+                "bmi_underweight": DUO_BLUE,
+                "bmi_normal": DUO_GREEN,
+                "bmi_overweight": DUO_ORANGE,
+                "bmi_obese": DUO_RED,
+            }
+            badge_color = bmi_colors.get(cat_key, DUO_GREEN)
+            bmi_control = ft.Container(
+                bgcolor=ft.Colors.with_opacity(0.15, badge_color),
+                border_radius=16,
+                padding=ft.Padding.symmetric(horizontal=14, vertical=10),
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.SPEED, size=22, color=badge_color),
+                        ft.Text(
+                            tr(
+                                "bmi_title",
+                                self.lang,
+                                val=bmi_val,
+                                cat=tr(cat_key, self.lang),
+                            ),
+                            size=14,
+                            weight=ft.FontWeight.BOLD,
+                            color=badge_color,
+                        ),
+                    ],
+                    spacing=8,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                ),
+            )
+        else:
+            bmi_control = ft.Text(
+                tr("bmi_hint", self.lang),
+                size=12,
+                color=t["subtext"],
+                italic=True,
+            )
+
+        # Form Card: Body Metrics & Goals
+        metrics_card = self._card(
+            ft.Column(
+                [
+                    ft.Text(
+                        tr("profile_metrics_title", self.lang),
+                        size=17,
+                        weight=ft.FontWeight.BOLD,
+                        color=t["text"],
+                    ),
+                    bmi_control,
+                    self.profile_name_in,
+                    ft.Row(
+                        [
+                            ft.Container(content=self.profile_age_in, expand=1),
+                            ft.Container(content=self.profile_weight_in, expand=1),
+                            ft.Container(content=self.profile_height_in, expand=1),
+                        ],
+                        spacing=8,
+                    ),
+                    self.profile_goals_in,
+                    ft.Container(height=6),
+                    _duo_button(
+                        tr("profile_btn_save", self.lang),
+                        on_click=self._on_save_profile,
+                        icon=ft.Icons.SAVE,
+                        bg=DUO_GREEN,
+                        height=50,
+                    ),
+                ],
+                spacing=12,
+            ),
+            padding=20,
+        )
+
+        # Logout Button
+        logout_btn = _duo_button(
+            tr("profile_btn_logout", self.lang),
+            on_click=self._on_logout,
+            icon=ft.Icons.LOGOUT,
+            bg=DUO_RED,
+            height=46,
+        )
+
+        return [
+            banner_card,
+            kpi_row,
+            metrics_card,
+            logout_btn,
+        ]
+
     def render_tab(self, index: int) -> None:
-        """Render the selected tab view and toggle the FAB on the Habits tab."""
+        """Render the selected tab view or gate on the auth screen."""
+        if self.current_user is None:
+            if self.page.navigation_bar:
+                self.page.navigation_bar.visible = False
+            self.fab.visible = False
+            self.body_container.controls = self._build_auth_view()
+            self.page.update()
+            return
+
+        if self.page.navigation_bar:
+            self.page.navigation_bar.visible = True
+            self.page.navigation_bar.selected_index = index
+
         self.current_tab = index
         builders = {
             0: self._build_habits_tab,
             1: self._build_checkin_tab,
             2: self._build_report_tab,
             3: self._build_backup_tab,
+            4: self._build_profile_tab,
         }
         self.fab.visible = index == 0
         self.body_container.controls = builders.get(index, self._build_habits_tab)()
@@ -1324,7 +1851,7 @@ def main(page: ft.Page) -> None:
     controller = ActivityTrackerUI(page, db)
     page.floating_action_button = controller.fab
 
-    route_map = {"/0": 0, "/1": 1, "/2": 2, "/3": 3}
+    route_map = {"/0": 0, "/1": 1, "/2": 2, "/3": 3, "/4": 4}
     initial_tab = route_map.get(
         page.route, int(os.environ.get("TRACKER_INITIAL_TAB", "0"))
     )
@@ -1341,6 +1868,7 @@ def main(page: ft.Page) -> None:
         selected_index=initial_tab,
         bgcolor=LIGHT_THEME["nav_bg"],
         indicator_color=LIGHT_THEME["green_light"],
+        visible=controller.current_user is not None,
         on_change=lambda e: controller.render_tab(int(e.control.selected_index or 0)),
         destinations=[
             ft.NavigationBarDestination(
@@ -1358,6 +1886,10 @@ def main(page: ft.Page) -> None:
             ft.NavigationBarDestination(
                 icon=ft.Icons.BACKUP,
                 label=tr("tab_backup", controller.lang),
+            ),
+            ft.NavigationBarDestination(
+                icon=ft.Icons.PERSON,
+                label=tr("tab_profile", controller.lang),
             ),
         ],
     )
