@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 import flet as ft
 
 from tracker.mobile import main
