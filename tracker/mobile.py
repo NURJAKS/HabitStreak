@@ -1,6 +1,7 @@
 """Duolingo-inspired Flet mobile UI for Physical Activity Tracker (Option 28).
 
-Supports 3 languages (Kazakh, Russian, English) and Dark/Light themes.
+Supports 3 languages (Kazakh, Russian, English), Dark/Light themes,
+custom athletic color identity (Kinetic Indigo & Radiant Flame), and tactile 3D tiles.
 """
 
 from __future__ import annotations
@@ -45,61 +46,99 @@ MOBILE_HEIGHT = 900
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_BACKUP_PATH = "backups/tracker_backup.json"
 
-# Duolingo Core Brand Colors
-DUO_GREEN = "#58CC02"
-DUO_GREEN_DARK = "#46A302"
-DUO_ORANGE = "#FF9600"
-DUO_BLUE = "#1CB0F6"
-DUO_PURPLE = "#CE82FF"
-DUO_RED = "#FF4B4B"
-DUO_GOLD = "#FFC800"
-DUO_WHITE = "#FFFFFF"
+# HabitStreak Athletic Identity Palette (Kinetic Indigo & Radiant Flame)
+BRAND_PRIMARY = "#4F46E5"        # Kinetic Indigo / Royal Cobalt (App identity, Primary actions)
+BRAND_PRIMARY_BEVEL = "#3730A3"  # 3D Tactile Bottom Lip
+COLOR_FLAME = "#FF5722"          # Radiant Ember Flame (Streaks, Fire badges, 100% Goal)
+COLOR_FLAME_BEVEL = "#C23000"    # 3D Flame Bottom Lip
+COLOR_SKY = "#0284C7"            # Electric Sky Blue (Cardio, Secondary actions)
+COLOR_SKY_BEVEL = "#035388"
+COLOR_CORAL = "#F43F5E"          # Vivid Coral Red (Strength, Delete/Logout)
+COLOR_CORAL_BEVEL = "#BE123C"
+COLOR_CYAN = "#06B6D4"           # Cyan Aquamarine (Hydration)
+COLOR_CYAN_BEVEL = "#0891B2"
+COLOR_PURPLE = "#8B5CF6"         # Amethyst Purple (Flexibility)
+COLOR_PURPLE_BEVEL = "#6D28D9"
+COLOR_AMBER = "#F59E0B"          # Sunburst Amber (Sport, League trophies)
+COLOR_AMBER_BEVEL = "#B45309"
+COLOR_MINT = "#10B981"           # Athletic Mint (Completed checks, health goals)
+COLOR_MINT_BEVEL = "#059669"
+COLOR_WHITE = "#FFFFFF"
 
-# Light Theme Palette
-LIGHT_THEME: dict[str, str] = {
-    "bg": "#F7F7F7",
-    "card_bg": "#FFFFFF",
-    "text": "#3C3C3C",
-    "subtext": "#777777",
-    "shadow": "#E5E5E5",
-    "nav_bg": "#FFFFFF",
-    "border": "#E5E5E5",
-    "input_bg": "#FFFFFF",
-    "green_light": "#E5F8D3",
-    "blue_light": "#DDF4FF",
-    "orange_light": "#FFF0D6",
-    "purple_light": "#F3E5FF",
-    "gold_light": "#FFF5D6",
-    "red_light": "#FFDFE0",
-    "grey_bar": "#E5E5E5",
+# Semantic / Legacy Aliases
+DUO_GREEN = BRAND_PRIMARY
+DUO_GREEN_DARK = BRAND_PRIMARY_BEVEL
+DUO_ORANGE = COLOR_FLAME
+DUO_BLUE = COLOR_SKY
+DUO_PURPLE = COLOR_PURPLE
+DUO_RED = COLOR_CORAL
+DUO_GOLD = COLOR_AMBER
+DUO_WHITE = COLOR_WHITE
+
+BUTTON_BEVELS: dict[str, str] = {
+    BRAND_PRIMARY: BRAND_PRIMARY_BEVEL,
+    COLOR_FLAME: COLOR_FLAME_BEVEL,
+    COLOR_SKY: COLOR_SKY_BEVEL,
+    COLOR_CORAL: COLOR_CORAL_BEVEL,
+    COLOR_CYAN: COLOR_CYAN_BEVEL,
+    COLOR_PURPLE: COLOR_PURPLE_BEVEL,
+    COLOR_AMBER: COLOR_AMBER_BEVEL,
+    COLOR_MINT: COLOR_MINT_BEVEL,
 }
 
-# Dark Theme Palette (Duolingo Obsidian Slate Aesthetic)
+# Light Theme Palette (Athletic Studio — Ultra-clean, crisp, and high-clarity)
+LIGHT_THEME: dict[str, str] = {
+    "bg": "#F8FAFC",                  # Slate 50 canvas
+    "card_bg": "#FFFFFF",             # Crisp pure white
+    "card_border_side": "#E2E8F0",    # Slate 200 (1.5px side borders)
+    "card_border_bottom": "#CBD5E1",  # Slate 300 (4.0px tactile 3D bottom bevel)
+    "text": "#0F172A",                # Slate 900 (ultra crisp, bold text)
+    "subtext": "#64748B",             # Slate 500 (smooth secondary text)
+    "shadow": "#E2E8F0",
+    "nav_bg": "#FFFFFF",
+    "border": "#E2E8F0",
+    "input_bg": "#FFFFFF",
+    "primary_light": "#EEF2FF",
+    "flame_light": "#FFF1EB",
+    "sky_light": "#E0F2FE",
+    "coral_light": "#FFE4E6",
+    "cyan_light": "#CFFAFE",
+    "purple_light": "#EDE9FE",
+    "amber_light": "#FEF3C7",
+    "mint_light": "#D1FAE5",
+    "grey_bar": "#E2E8F0",
+}
+
+# Dark Theme Palette (Obsidian Arena — Deep, futuristic, vivid contrast)
 DARK_THEME: dict[str, str] = {
-    "bg": "#131F24",
-    "card_bg": "#202F36",
-    "text": "#FFFFFF",
-    "subtext": "#9CA3AF",
-    "shadow": "#0A1014",
-    "nav_bg": "#18252C",
-    "border": "#2C3D45",
-    "input_bg": "#18252C",
-    "green_light": "#1B3B22",
-    "blue_light": "#153347",
-    "orange_light": "#3D2B14",
-    "purple_light": "#331E42",
-    "gold_light": "#3D3514",
-    "red_light": "#3D1B1E",
-    "grey_bar": "#2C3D45",
+    "bg": "#0B0F19",                  # Deep Obsidian / Midnight Space
+    "card_bg": "#131B2E",             # Rich Indigo-Slate tile
+    "card_border_side": "#1E293B",    # Slate 800
+    "card_border_bottom": "#26354D",  # Tactile 3D bottom bevel
+    "text": "#F8FAFC",                # Crisp bright white
+    "subtext": "#94A3B8",             # Slate 400
+    "shadow": "#05070D",
+    "nav_bg": "#0E1524",
+    "border": "#1E293B",
+    "input_bg": "#0B0F19",
+    "primary_light": "#1E1B4B",
+    "flame_light": "#3B1406",
+    "sky_light": "#082F49",
+    "coral_light": "#3D0A14",
+    "cyan_light": "#062E38",
+    "purple_light": "#2E1065",
+    "amber_light": "#451A03",
+    "mint_light": "#064E3B",
+    "grey_bar": "#1E293B",
 }
 
 CATEGORY_STYLE_KEYS: dict[str, tuple[Any, str, str]] = {
-    "Cardio": (ft.Icons.DIRECTIONS_RUN, DUO_BLUE, "blue_light"),
-    "Steps": (ft.Icons.DIRECTIONS_WALK, DUO_GREEN, "green_light"),
-    "Strength": (ft.Icons.FITNESS_CENTER, DUO_RED, "red_light"),
-    "Hydration": (ft.Icons.WATER_DROP, DUO_BLUE, "blue_light"),
-    "Flexibility": (ft.Icons.SELF_IMPROVEMENT, DUO_PURPLE, "purple_light"),
-    "Sport": (ft.Icons.EMOJI_EVENTS, DUO_GOLD, "gold_light"),
+    "Cardio": (ft.Icons.DIRECTIONS_RUN, COLOR_SKY, "sky_light"),
+    "Steps": (ft.Icons.DIRECTIONS_WALK, BRAND_PRIMARY, "primary_light"),
+    "Strength": (ft.Icons.FITNESS_CENTER, COLOR_CORAL, "coral_light"),
+    "Hydration": (ft.Icons.WATER_DROP, COLOR_CYAN, "cyan_light"),
+    "Flexibility": (ft.Icons.SELF_IMPROVEMENT, COLOR_PURPLE, "purple_light"),
+    "Sport": (ft.Icons.EMOJI_EVENTS, COLOR_AMBER, "amber_light"),
 }
 
 
@@ -117,29 +156,50 @@ def _duo_button(
     label: str,
     on_click: Any,
     icon: Any = None,
-    bg: str = DUO_GREEN,
-    fg: str = DUO_WHITE,
+    bg: str = BRAND_PRIMARY,
+    bevel: str | None = None,
+    fg: str = COLOR_WHITE,
     expand: bool = False,
     height: int = 48,
-) -> ft.FilledButton:
-    """Create a tactile Duolingo-style rounded button."""
-    return ft.FilledButton(
-        content=label,
-        icon=icon,
+) -> ft.Container:
+    """Create a tactile Duolingo-style 3D button with a physical bottom bevel."""
+    lip_color = bevel or BUTTON_BEVELS.get(bg, BRAND_PRIMARY_BEVEL)
+    items: list[ft.Control] = []
+    if icon is not None:
+        items.append(ft.Icon(icon, size=20, color=fg))
+    items.append(
+        ft.Text(
+            label,
+            size=14,
+            weight=ft.FontWeight.BOLD,
+            color=fg,
+        )
+    )
+    return ft.Container(
+        content=ft.Row(
+            items,
+            alignment=ft.MainAxisAlignment.CENTER,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=8,
+            tight=True,
+        ),
         bgcolor=bg,
-        color=fg,
+        border_radius=18,
+        border=ft.Border(
+            top=ft.BorderSide(1.0, ft.Colors.with_opacity(0.18, ft.Colors.WHITE)),
+            left=ft.BorderSide(1.0, ft.Colors.with_opacity(0.10, ft.Colors.WHITE)),
+            right=ft.BorderSide(1.0, ft.Colors.with_opacity(0.10, ft.Colors.WHITE)),
+            bottom=ft.BorderSide(4.0, lip_color),
+        ),
         height=height,
         expand=expand,
-        style=ft.ButtonStyle(
-            shape=ft.RoundedRectangleBorder(radius=20),
-            elevation=3,
-        ),
+        alignment=ft.Alignment(0, 0),
         on_click=on_click,
     )
 
 
 class ActivityTrackerUI:
-    """Controller for the 4-tab Duolingo-style Flet mobile interface."""
+    """Controller for the 5-tab Duolingo-style Flet mobile interface."""
 
     def __init__(
         self,
@@ -168,8 +228,8 @@ class ActivityTrackerUI:
         self.add_sheet = self._build_add_bottom_sheet()
         self.fab = ft.FloatingActionButton(
             icon=ft.Icons.ADD,
-            bgcolor=DUO_GREEN,
-            foreground_color=DUO_WHITE,
+            bgcolor=COLOR_FLAME,
+            foreground_color=COLOR_WHITE,
             shape=ft.CircleBorder(),
             tooltip=tr("fab_tooltip", self.lang),
             on_click=self.open_add_sheet,
@@ -187,18 +247,23 @@ class ActivityTrackerUI:
         padding: int = 18,
         bg: str | None = None,
     ) -> ft.Container:
-        """Create a bubble-style Duolingo card respecting active theme."""
+        """Create a tactile Duolingo 3D tile respecting active theme."""
         t = self.theme
         return ft.Container(
-            border_radius=24,
+            border_radius=22,
             bgcolor=bg or t["card_bg"],
             padding=padding,
-            border=ft.Border.all(1, t["border"]) if self.is_dark else None,
+            border=ft.Border(
+                top=ft.BorderSide(1.5, t["card_border_side"]),
+                left=ft.BorderSide(1.5, t["card_border_side"]),
+                right=ft.BorderSide(1.5, t["card_border_side"]),
+                bottom=ft.BorderSide(4.0, t["card_border_bottom"]),
+            ),
             shadow=ft.BoxShadow(
-                spread_radius=1,
-                blur_radius=10,
+                spread_radius=0,
+                blur_radius=8,
                 color=t["shadow"],
-                offset=ft.Offset(0, 4),
+                offset=ft.Offset(0, 2),
             ),
             content=content,
         )
@@ -211,10 +276,10 @@ class ActivityTrackerUI:
             content=ft.Column(
                 [
                     ft.Container(
-                        content=ft.Icon(icon, size=56, color=DUO_BLUE),
-                        bgcolor=t["blue_light"],
+                        content=ft.Icon(icon, size=52, color=BRAND_PRIMARY),
+                        bgcolor=t["primary_light"],
                         padding=20,
-                        border_radius=32,
+                        border_radius=28,
                     ),
                     ft.Text(
                         title,
@@ -239,14 +304,14 @@ class ActivityTrackerUI:
         """Return icon, foreground color, and theme-adapted light background."""
         t = self.theme
         icon, fg, bg_key = CATEGORY_STYLE_KEYS.get(
-            category, (ft.Icons.STAR, DUO_BLUE, "blue_light")
+            category, (ft.Icons.STAR, BRAND_PRIMARY, "primary_light")
         )
         return icon, fg, t[bg_key]
 
     def _init_inputs(self) -> None:
         """Create rounded input controls for BottomSheet, Check-In, and Backup."""
         t = self.theme
-        rounded = ft.OutlineInputBorder(border_radius=20)
+        rounded = ft.OutlineInputBorder(border_radius=18)
         self.title_in = ft.TextField(
             label=tr("field_habit_name", self.lang), border=rounded
         )
@@ -284,23 +349,23 @@ class ActivityTrackerUI:
         )
         self.ring_bar = ft.ProgressRing(
             value=0.0,
-            width=130,
-            height=130,
+            width=134,
+            height=134,
             stroke_width=14,
-            color=DUO_GREEN,
+            color=COLOR_FLAME,
             bgcolor=t["grey_bar"],
         )
         self.ring_label = ft.Text(
-            "0%", size=22, weight=ft.FontWeight.BOLD, color=t["text"]
+            "0%", size=24, weight=ft.FontWeight.BOLD, color=t["text"]
         )
         self.ring_sub = ft.Text("0 / 0", size=13, color=t["subtext"])
         self.val_slider = ft.Slider(
             min=0,
             max=100,
             value=0,
-            active_color=DUO_GREEN,
+            active_color=COLOR_FLAME,
             inactive_color=t["grey_bar"],
-            thumb_color=DUO_GREEN,
+            thumb_color=COLOR_FLAME,
             on_change=self._on_slider_change,
         )
         self.backup_path_in = ft.TextField(
@@ -398,7 +463,7 @@ class ActivityTrackerUI:
 
         if self.page.navigation_bar:
             self.page.navigation_bar.bgcolor = t["nav_bg"]
-            self.page.navigation_bar.indicator_color = t["green_light"]
+            self.page.navigation_bar.indicator_color = t["primary_light"]
             self.page.navigation_bar.destinations = [
                 ft.NavigationBarDestination(
                     icon=ft.Icons.LOCAL_FIRE_DEPARTMENT,
@@ -433,11 +498,11 @@ class ActivityTrackerUI:
 
         theme_btn = ft.IconButton(
             icon=theme_icon,
-            icon_color=DUO_WHITE,
+            icon_color=COLOR_WHITE,
             icon_size=20,
             tooltip=theme_tooltip,
             style=ft.ButtonStyle(
-                bgcolor=ft.Colors.with_opacity(0.22, ft.Colors.BLACK),
+                bgcolor=ft.Colors.with_opacity(0.20, ft.Colors.BLACK),
                 shape=ft.CircleBorder(),
             ),
             on_click=lambda _: self.toggle_theme(),
@@ -450,16 +515,16 @@ class ActivityTrackerUI:
                     label,
                     size=11,
                     weight=ft.FontWeight.BOLD if is_active else ft.FontWeight.NORMAL,
-                    color=DUO_GREEN_DARK if is_active else DUO_WHITE,
+                    color=BRAND_PRIMARY if is_active else COLOR_WHITE,
                 ),
-                bgcolor=DUO_WHITE if is_active else ft.Colors.TRANSPARENT,
+                bgcolor=COLOR_WHITE if is_active else ft.Colors.TRANSPARENT,
                 padding=ft.Padding.symmetric(horizontal=8, vertical=4),
                 border_radius=10,
                 on_click=lambda _, c=code: self.set_language(c),
             )
 
         lang_capsule = ft.Container(
-            bgcolor=ft.Colors.with_opacity(0.24, ft.Colors.BLACK),
+            bgcolor=ft.Colors.with_opacity(0.22, ft.Colors.BLACK),
             border_radius=12,
             padding=2,
             content=ft.Row(
@@ -475,23 +540,30 @@ class ActivityTrackerUI:
 
         icon_widget = ft.Image(
             src="/icon.png",
-            width=44,
-            height=44,
+            width=46,
+            height=46,
             fit=ft.BoxFit.CONTAIN,
-            border_radius=12,
+            border_radius=14,
             error_content=ft.Icon(
                 ft.Icons.LOCAL_FIRE_DEPARTMENT,
-                color=DUO_ORANGE,
-                size=26,
+                color=COLOR_FLAME,
+                size=28,
             ),
         )
 
+        header_bg = BRAND_PRIMARY if not self.is_dark else "#131B2E"
+        header_lip = BRAND_PRIMARY_BEVEL if not self.is_dark else "#0B0F19"
+
         self.header_container.content = ft.Container(
             padding=ft.Padding.symmetric(horizontal=16, vertical=12),
-            bgcolor=DUO_GREEN,
-            border_radius=24,
+            bgcolor=header_bg,
+            border_radius=22,
+            border=ft.Border(
+                top=ft.BorderSide(1.0, ft.Colors.with_opacity(0.20, ft.Colors.WHITE)),
+                bottom=ft.BorderSide(4.0, header_lip),
+            ),
             shadow=ft.BoxShadow(
-                spread_radius=1,
+                spread_radius=0,
                 blur_radius=10,
                 color=self.theme["shadow"],
                 offset=ft.Offset(0, 4),
@@ -502,23 +574,22 @@ class ActivityTrackerUI:
                         [
                             ft.Container(
                                 content=icon_widget,
-                                bgcolor=DUO_WHITE,
+                                bgcolor=COLOR_WHITE,
                                 padding=2,
-                                border_radius=14,
+                                border_radius=16,
                             ),
                             ft.Column(
                                 [
                                     ft.Text(
                                         tr("app_title", self.lang),
-                                        size=18,
+                                        size=19,
                                         weight=ft.FontWeight.BOLD,
-                                        color=DUO_WHITE,
+                                        color=COLOR_WHITE,
                                     ),
                                     ft.Text(
                                         tr("app_subtitle", self.lang),
                                         size=11,
-                                        color=DUO_WHITE,
-                                        opacity=0.9,
+                                        color=ft.Colors.with_opacity(0.85, ft.Colors.WHITE),
                                         no_wrap=True,
                                         max_lines=1,
                                         overflow=ft.TextOverflow.ELLIPSIS,
@@ -528,9 +599,9 @@ class ActivityTrackerUI:
                                 expand=True,
                             ),
                         ],
-                        spacing=10,
-                        expand=True,
+                        spacing=12,
                         vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                        expand=True,
                     ),
                     ft.Row(
                         [
@@ -556,7 +627,7 @@ class ActivityTrackerUI:
         self.page.update()
 
     def toggle_theme(self) -> None:
-        """Toggle between Duolingo Flat Light mode and Obsidian Dark mode."""
+        """Toggle between Athletic Studio Light mode and Obsidian Arena Dark mode."""
         self.is_dark = not self.is_dark
         self.page.theme_mode = (
             ft.ThemeMode.DARK if self.is_dark else ft.ThemeMode.LIGHT
@@ -572,9 +643,9 @@ class ActivityTrackerUI:
         self.last_error = is_error
         snack = ft.SnackBar(
             content=ft.Text(
-                message, color=DUO_WHITE, weight=ft.FontWeight.BOLD, size=14
+                message, color=COLOR_WHITE, weight=ft.FontWeight.BOLD, size=14
             ),
-            bgcolor=DUO_RED if is_error else DUO_GREEN,
+            bgcolor=COLOR_CORAL if is_error else BRAND_PRIMARY,
             behavior=ft.SnackBarBehavior.FLOATING,
             shape=ft.RoundedRectangleBorder(radius=18),
         )
@@ -586,12 +657,18 @@ class ActivityTrackerUI:
         t = self.theme
         return ft.BottomSheet(
             bgcolor=t["card_bg"],
-            show_drag_handle=True,
-            shape=ft.RoundedRectangleBorder(radius=24),
             content=ft.Container(
-                padding=22,
+                padding=24,
+                border_radius=ft.BorderRadius(top_left=24, top_right=24, bottom_left=0, bottom_right=0),
                 content=ft.Column(
                     [
+                        ft.Container(
+                            width=40,
+                            height=4,
+                            bgcolor=t["border"],
+                            border_radius=2,
+                            alignment=ft.Alignment(0, 0),
+                        ),
                         ft.Text(
                             tr("modal_new_habit", self.lang),
                             size=20,
@@ -600,22 +677,19 @@ class ActivityTrackerUI:
                         ),
                         self.title_in,
                         self.cat_dd,
-                        self.target_in,
-                        self.unit_in,
-                        ft.Row(
-                            [
-                                _duo_button(
-                                    tr("btn_create_habit", self.lang),
-                                    on_click=self._on_add_activity,
-                                    icon=ft.Icons.CHECK_CIRCLE,
-                                    bg=DUO_GREEN,
-                                    expand=True,
-                                )
-                            ]
+                        ft.Row([self.target_in, self.unit_in], spacing=10),
+                        ft.Container(height=6),
+                        _duo_button(
+                            tr("btn_create_habit", self.lang),
+                            on_click=self._on_add_activity,
+                            icon=ft.Icons.CHECK,
+                            bg=BRAND_PRIMARY,
+                            height=50,
                         ),
                     ],
-                    tight=True,
                     spacing=12,
+                    tight=True,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 ),
             ),
         )
@@ -625,24 +699,32 @@ class ActivityTrackerUI:
         self.page.show_dialog(self.add_sheet)
 
     def _make_streak_badge(self, streak: int) -> ft.Container:
-        """Build a vibrant orange streak badge when active, or theme grey when 0."""
+        """Build a radiant flame streak badge when active, or theme muted pill when 0."""
         t = self.theme
         active = streak > 0
-        bg_color = DUO_ORANGE if active else t["border"]
-        fg_color = DUO_WHITE if active else t["subtext"]
+        bg_color = t["flame_light"] if active else t["border"]
+        fg_color = COLOR_FLAME if active else t["subtext"]
+        border_color = ft.Colors.with_opacity(0.35, COLOR_FLAME) if active else t["card_border_bottom"]
+
         return ft.Container(
             bgcolor=bg_color,
-            padding=ft.Padding.symmetric(horizontal=12, vertical=8),
-            border_radius=18,
+            padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+            border_radius=14,
+            border=ft.Border(
+                top=ft.BorderSide(1.0, border_color),
+                left=ft.BorderSide(1.0, border_color),
+                right=ft.BorderSide(1.0, border_color),
+                bottom=ft.BorderSide(2.5, COLOR_FLAME_BEVEL if active else t["card_border_bottom"]),
+            ),
             content=ft.Row(
                 [
                     ft.Icon(
                         ft.Icons.LOCAL_FIRE_DEPARTMENT, color=fg_color, size=18
                     ),
                     ft.Text(
-                        str(streak),
+                        f"{streak}d",
                         weight=ft.FontWeight.BOLD,
-                        size=15,
+                        size=14,
                         color=fg_color,
                     ),
                 ],
@@ -658,7 +740,7 @@ class ActivityTrackerUI:
         icon_data, icon_fg, icon_bg = self.get_category_style(item["category"])
         progress_val = float(item.get("today_progress", 0.0))
         today_val = float(item.get("today_value", 0.0))
-        bar_color = DUO_GREEN if progress_val >= 1.0 else DUO_BLUE
+        bar_color = COLOR_MINT if progress_val >= 1.0 else BRAND_PRIMARY
 
         progress_text = tr(
             "today_progress_sub",
@@ -677,7 +759,7 @@ class ActivityTrackerUI:
                         content=ft.Icon(icon_data, color=icon_fg, size=28),
                         bgcolor=icon_bg,
                         padding=14,
-                        border_radius=20,
+                        border_radius=18,
                     ),
                     ft.Column(
                         [
@@ -746,7 +828,7 @@ class ActivityTrackerUI:
             self.notify(f"Error: {exc}", is_error=True)
 
     def _build_habits_tab(self) -> list[ft.Control]:
-        """Build the de-cluttered Duolingo Habits & Streaks home screen."""
+        """Build the tactile Duolingo Habits & Streaks home screen."""
         t = self.theme
         activities = list_activities(self.db)
         best_now = max((a["current_streak"] for a in activities), default=0)
@@ -754,69 +836,88 @@ class ActivityTrackerUI:
             1 for a in activities if float(a.get("today_progress", 0.0)) >= 1.0
         )
 
-        kpi_bar = self._card(
+        streak_kpi_card = ft.Container(
+            expand=True,
             padding=14,
+            bgcolor=t["flame_light"],
+            border_radius=20,
+            border=ft.Border(
+                top=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_FLAME)),
+                left=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_FLAME)),
+                right=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_FLAME)),
+                bottom=ft.BorderSide(3.5, COLOR_FLAME_BEVEL),
+            ),
             content=ft.Row(
                 [
-                    ft.Row(
-                        [
-                            ft.Icon(
-                                ft.Icons.LOCAL_FIRE_DEPARTMENT,
-                                color=DUO_ORANGE,
-                                size=26,
-                            ),
-                            ft.Column(
-                                [
-                                    ft.Text(
-                                        tr("streak_kpi", self.lang, count=best_now),
-                                        weight=ft.FontWeight.BOLD,
-                                        size=15,
-                                        color=t["text"],
-                                    ),
-                                    ft.Text(
-                                        tr("streak_kpi_sub", self.lang),
-                                        size=11,
-                                        color=t["subtext"],
-                                    ),
-                                ],
-                                spacing=1,
-                            ),
-                        ],
-                        spacing=8,
+                    ft.Icon(
+                        ft.Icons.LOCAL_FIRE_DEPARTMENT,
+                        color=COLOR_FLAME,
+                        size=28,
                     ),
-                    ft.Row(
+                    ft.Column(
                         [
-                            ft.Icon(
-                                ft.Icons.CHECK_CIRCLE, color=DUO_GREEN, size=26
+                            ft.Text(
+                                tr("streak_kpi", self.lang, count=best_now),
+                                weight=ft.FontWeight.BOLD,
+                                size=15,
+                                color=t["text"],
                             ),
-                            ft.Column(
-                                [
-                                    ft.Text(
-                                        tr(
-                                            "done_kpi",
-                                            self.lang,
-                                            done=completed_today,
-                                            total=len(activities),
-                                        ),
-                                        weight=ft.FontWeight.BOLD,
-                                        size=15,
-                                        color=t["text"],
-                                    ),
-                                    ft.Text(
-                                        tr("done_kpi_sub", self.lang),
-                                        size=11,
-                                        color=t["subtext"],
-                                    ),
-                                ],
-                                spacing=1,
+                            ft.Text(
+                                tr("streak_kpi_sub", self.lang),
+                                size=11,
+                                color=t["subtext"],
                             ),
                         ],
-                        spacing=8,
+                        spacing=1,
                     ),
                 ],
-                alignment=ft.MainAxisAlignment.SPACE_AROUND,
+                spacing=8,
             ),
         )
+
+        done_kpi_card = ft.Container(
+            expand=True,
+            padding=14,
+            bgcolor=t["primary_light"],
+            border_radius=20,
+            border=ft.Border(
+                top=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, BRAND_PRIMARY)),
+                left=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, BRAND_PRIMARY)),
+                right=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, BRAND_PRIMARY)),
+                bottom=ft.BorderSide(3.5, BRAND_PRIMARY_BEVEL),
+            ),
+            content=ft.Row(
+                [
+                    ft.Icon(
+                        ft.Icons.CHECK_CIRCLE, color=BRAND_PRIMARY, size=28
+                    ),
+                    ft.Column(
+                        [
+                            ft.Text(
+                                tr(
+                                    "done_kpi",
+                                    self.lang,
+                                    done=completed_today,
+                                    total=len(activities),
+                                ),
+                                weight=ft.FontWeight.BOLD,
+                                size=15,
+                                color=t["text"],
+                            ),
+                            ft.Text(
+                                tr("done_kpi_sub", self.lang),
+                                size=11,
+                                color=t["subtext"],
+                            ),
+                        ],
+                        spacing=1,
+                    ),
+                ],
+                spacing=8,
+            ),
+        )
+
+        kpi_bar = ft.Row([streak_kpi_card, done_kpi_card], spacing=10)
 
         if not activities:
             return [
@@ -852,7 +953,7 @@ class ActivityTrackerUI:
         self.val_slider.max = max(target * 1.5, 10.0)
         self.val_slider.value = min(current, self.val_slider.max)
         self.ring_bar.value = ratio
-        self.ring_bar.color = DUO_GREEN if ratio >= 1.0 else DUO_BLUE
+        self.ring_bar.color = COLOR_FLAME if ratio >= 1.0 else BRAND_PRIMARY
         self.ring_bar.bgcolor = t["grey_bar"]
         self.ring_label.value = f"{int(ratio * 100)}%"
         self.ring_label.color = t["text"]
@@ -860,50 +961,63 @@ class ActivityTrackerUI:
         self.ring_sub.color = t["subtext"]
 
     def _on_activity_selected(self, _: Any = None) -> None:
-        """Reset dial to selected habit's current progress when dropdown changes."""
+        """Handle dropdown selection change on Check-In tab."""
         activities = list_activities(self.db)
         if not activities or not self.log_act_dd.value:
             return
-        selected_id = int(self.log_act_dd.value)
-        act = next((a for a in activities if a["id"] == selected_id), activities[0])
-        self.log_val_in.value = str(act.get("today_value", 0.0))
-        self._sync_checkin_dial(activities)
-        self.page.update()
+        act = next((a for a in activities if a["id"] == int(self.log_act_dd.value)), None)
+        if act:
+            self.log_val_in.value = str(act.get("today_value", 0.0))
+            self._sync_checkin_dial(activities)
+            self.page.update()
 
     def _on_slider_change(self, e: Any) -> None:
-        """Update ProgressRing live as the user drags the Slider."""
-        val = round(float(e.control.value or 0.0), 1)
+        """Handle interactive value adjustment via Slider control."""
+        val = round(float(e.control.value), 1)
         self.log_val_in.value = str(val)
-        self._sync_checkin_dial(list_activities(self.db))
-        self.page.update()
+        activities = list_activities(self.db)
+        if activities and self.log_act_dd.value:
+            act = next((a for a in activities if a["id"] == int(self.log_act_dd.value)), None)
+            if act:
+                target = float(act["target_value"])
+                ratio = min(1.0, val / target) if target > 0 else 0.0
+                self.ring_bar.value = ratio
+                self.ring_bar.color = COLOR_FLAME if ratio >= 1.0 else BRAND_PRIMARY
+                self.ring_label.value = f"{int(ratio * 100)}%"
+                self.ring_sub.value = f"{val:g} / {target:g} {act['unit']}"
+                self.page.update()
 
-    def _add_quick_boost(self, fraction: float) -> None:
-        """Increment or complete the progress dial via tactile boost buttons."""
+    def _add_quick_boost(self, multiplier: float) -> None:
+        """Add percentage of target value to current log amount."""
         activities = list_activities(self.db)
         if not activities or not self.log_act_dd.value:
             return
-        selected_id = int(self.log_act_dd.value)
-        act = next((a for a in activities if a["id"] == selected_id), activities[0])
+        act = next((a for a in activities if a["id"] == int(self.log_act_dd.value)), None)
+        if not act:
+            return
         target = float(act["target_value"])
-        if fraction >= 1.0:
+        if multiplier >= 1.0:
             new_val = target
         else:
-            curr = float(self.log_val_in.value or 0.0)
-            new_val = round(curr + target * fraction, 1)
+            current = float(self.log_val_in.value or 0.0)
+            new_val = round(current + target * multiplier, 1)
+
         self.log_val_in.value = str(new_val)
         self._sync_checkin_dial(activities)
         self.page.update()
 
     def _on_log_progress(self, _: Any = None) -> None:
-        """Handle saving the daily check-in."""
+        """Handle recording workout progress for the selected activity."""
+        if not self.log_act_dd.value:
+            self.notify(f"Error: {tr('err_select_activity', self.lang)}", is_error=True)
+            return
         try:
-            if not self.log_act_dd.value:
-                raise TrackerError(tr("err_select_activity", self.lang))
+            val = float(self.log_val_in.value or 0.0)
             log_progress(
                 self.db,
                 int(self.log_act_dd.value),
-                self.log_date_in.value or "",
-                float(self.log_val_in.value or -1),
+                self.log_date_in.value or date.today().strftime(DATE_FMT),
+                val,
                 self.log_notes_in.value or "",
             )
             self.log_notes_in.value = ""
@@ -913,7 +1027,7 @@ class ActivityTrackerUI:
             self.notify(f"Error: {exc}", is_error=True)
 
     def _build_checkin_tab(self) -> list[ft.Control]:
-        """Build the interactive Duolingo Check-In tab with ProgressRing and Slider."""
+        """Build the interactive Duolingo Check-In tab with circular ring dial."""
         t = self.theme
         activities = list_activities(self.db)
         if not activities:
@@ -924,11 +1038,9 @@ class ActivityTrackerUI:
                     tr("empty_checkin_sub", self.lang),
                 )
             ]
+
         self.log_act_dd.options = [
-            ft.DropdownOption(
-                key=str(a["id"]),
-                text=f"{a['title']} ({a['target_value']:g} {a['unit']})",
-            )
+            ft.DropdownOption(key=str(a["id"]), text=f"{a['title']} ({a['category']})")
             for a in activities
         ]
         if not self.log_act_dd.value or not any(
@@ -943,8 +1055,6 @@ class ActivityTrackerUI:
             [
                 self.ring_bar,
                 ft.Container(
-                    width=130,
-                    height=130,
                     alignment=ft.Alignment(0, 0),
                     content=ft.Column(
                         [self.ring_label, self.ring_sub],
@@ -954,8 +1064,8 @@ class ActivityTrackerUI:
                     ),
                 ),
             ],
-            width=130,
-            height=130,
+            width=134,
+            height=134,
         )
 
         boost_row = ft.Row(
@@ -963,19 +1073,20 @@ class ActivityTrackerUI:
                 _duo_button(
                     tr("btn_boost_25", self.lang),
                     on_click=lambda _: self._add_quick_boost(0.25),
-                    bg=DUO_BLUE,
+                    bg=COLOR_SKY,
                     expand=True,
                 ),
                 _duo_button(
                     tr("btn_boost_50", self.lang),
                     on_click=lambda _: self._add_quick_boost(0.50),
-                    bg=DUO_BLUE,
+                    bg=BRAND_PRIMARY,
                     expand=True,
                 ),
                 _duo_button(
                     tr("btn_boost_100", self.lang),
                     on_click=lambda _: self._add_quick_boost(1.0),
-                    bg=DUO_ORANGE,
+                    icon=ft.Icons.LOCAL_FIRE_DEPARTMENT,
+                    bg=COLOR_FLAME,
                     expand=True,
                 ),
             ],
@@ -992,7 +1103,7 @@ class ActivityTrackerUI:
                             ft.Icons.CHECK_CIRCLE
                             if r["is_completed"]
                             else ft.Icons.TIMELAPSE,
-                            color=DUO_GREEN if r["is_completed"] else DUO_ORANGE,
+                            color=COLOR_MINT if r["is_completed"] else COLOR_FLAME,
                             size=24,
                         ),
                         ft.Column(
@@ -1035,20 +1146,16 @@ class ActivityTrackerUI:
                         self.val_slider,
                         boost_row,
                         self.log_notes_in,
-                        ft.Row(
-                            [
-                                _duo_button(
-                                    tr("btn_complete_checkin", self.lang),
-                                    on_click=self._on_log_progress,
-                                    icon=ft.Icons.CHECK_CIRCLE,
-                                    bg=DUO_GREEN,
-                                    expand=True,
-                                )
-                            ]
+                        _duo_button(
+                            tr("btn_complete_checkin", self.lang),
+                            on_click=self._on_log_progress,
+                            icon=ft.Icons.CHECK_CIRCLE,
+                            bg=COLOR_FLAME,
+                            height=50,
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    spacing=10,
+                    spacing=14,
                 ),
             ),
             ft.Text(
@@ -1061,18 +1168,19 @@ class ActivityTrackerUI:
         ]
 
     def _build_report_tab(self) -> list[ft.Control]:
-        """Build the Duolingo-style 7-Day Weekly Analytics Report tab."""
+        """Build the Duolingo-styled 7-day League Report with awards and bars."""
         t = self.theme
         rep = get_weekly_report(self.db)
-        if rep["total_activities"] == 0:
+        if not rep["total_activities"]:
             return [
                 self._empty_state(
-                    ft.Icons.BAR_CHART,
+                    ft.Icons.LEADERBOARD_OUTLINED,
                     tr("empty_weekly_title", self.lang),
                     tr("empty_weekly_sub", self.lang),
                 )
             ]
-        day_bars = [
+
+        day_chain_rows = [
             ft.Row(
                 [
                     ft.Text(
@@ -1091,7 +1199,7 @@ class ActivityTrackerUI:
                         expand=True,
                         bar_height=10,
                         border_radius=8,
-                        color=DUO_GREEN,
+                        color=COLOR_FLAME if d["completed_count"] == rep["total_activities"] else BRAND_PRIMARY,
                         bgcolor=t["grey_bar"],
                     ),
                     ft.Text(
@@ -1119,7 +1227,7 @@ class ActivityTrackerUI:
                                     color=t["text"],
                                 ),
                                 ft.Container(
-                                    bgcolor=t["green_light"],
+                                    bgcolor=t["primary_light"],
                                     padding=ft.Padding.symmetric(
                                         horizontal=10, vertical=4
                                     ),
@@ -1128,7 +1236,7 @@ class ActivityTrackerUI:
                                         f"{s['completed_days']}/7d ({s['completion_rate']}%)",
                                         size=12,
                                         weight=ft.FontWeight.BOLD,
-                                        color=DUO_GREEN,
+                                        color=BRAND_PRIMARY,
                                     ),
                                 ),
                             ],
@@ -1136,7 +1244,7 @@ class ActivityTrackerUI:
                         ),
                         ft.ProgressBar(
                             value=s["completion_rate"] / 100.0,
-                            color=DUO_GREEN,
+                            color=COLOR_FLAME if s["completion_rate"] >= 100 else BRAND_PRIMARY,
                             bgcolor=t["grey_bar"],
                             bar_height=8,
                             border_radius=6,
@@ -1157,50 +1265,71 @@ class ActivityTrackerUI:
             )
             for s in rep["activity_summaries"]
         ]
-        return [
-            self._card(
-                padding=18,
-                bg=t["green_light"],
-                content=ft.Column(
-                    [
-                        ft.Text(
-                            tr(
-                                "weekly_report_title",
-                                self.lang,
-                                start=rep["start_date"],
-                                end=rep["end_date"],
-                            ),
-                            size=12,
-                            weight=ft.FontWeight.BOLD,
-                            color=t["text"],
-                        ),
-                        ft.Text(
-                            tr("weekly_score", self.lang, rate=rep["completion_rate"]),
-                            size=22,
-                            weight=ft.FontWeight.BOLD,
-                            color=t["text"],
-                        ),
-                        ft.ProgressBar(
-                            value=rep["completion_rate"] / 100.0,
-                            color=DUO_GREEN,
-                            bgcolor=t["card_bg"],
-                            bar_height=12,
-                            border_radius=8,
-                        ),
-                        ft.Text(
-                            tr(
-                                "weekly_completed_summary",
-                                self.lang,
-                                done=rep["completed_checkins"],
-                                total=rep["possible_checkins"],
-                            ),
-                            size=13,
-                            color=t["text"],
-                        ),
-                    ],
-                    spacing=8,
-                ),
+
+        score_card = ft.Container(
+            padding=18,
+            bgcolor=t["amber_light"],
+            border_radius=22,
+            border=ft.Border(
+                top=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_AMBER)),
+                left=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_AMBER)),
+                right=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_AMBER)),
+                bottom=ft.BorderSide(4.0, COLOR_AMBER_BEVEL),
             ),
+            content=ft.Column(
+                [
+                    ft.Row(
+                        [
+                            ft.Icon(ft.Icons.EMOJI_EVENTS, color=COLOR_AMBER, size=36),
+                            ft.Column(
+                                [
+                                    ft.Text(
+                                        tr(
+                                            "weekly_report_title",
+                                            self.lang,
+                                            start=rep["start_date"],
+                                            end=rep["end_date"],
+                                        ),
+                                        size=12,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=t["text"],
+                                    ),
+                                    ft.Text(
+                                        tr("weekly_score", self.lang, rate=rep["completion_rate"]),
+                                        size=22,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=t["text"],
+                                    ),
+                                ],
+                                spacing=1,
+                            ),
+                        ],
+                        spacing=12,
+                    ),
+                    ft.ProgressBar(
+                        value=rep["completion_rate"] / 100.0,
+                        color=COLOR_AMBER,
+                        bgcolor=t["card_bg"],
+                        bar_height=12,
+                        border_radius=8,
+                    ),
+                    ft.Text(
+                        tr(
+                            "weekly_completed_summary",
+                            self.lang,
+                            done=rep["completed_checkins"],
+                            total=rep["possible_checkins"],
+                        ),
+                        size=13,
+                        color=t["text"],
+                    ),
+                ],
+                spacing=10,
+            ),
+        )
+
+        return [
+            score_card,
             self._card(
                 padding=16,
                 content=ft.Column(
@@ -1211,9 +1340,9 @@ class ActivityTrackerUI:
                             weight=ft.FontWeight.BOLD,
                             color=t["text"],
                         ),
-                        *day_bars,
+                        *day_chain_rows,
                     ],
-                    spacing=10,
+                    spacing=12,
                 ),
             ),
             ft.Text(
@@ -1270,9 +1399,9 @@ class ActivityTrackerUI:
                     [
                         ft.Container(
                             bgcolor=(
-                                t["blue_light"]
+                                t["sky_light"]
                                 if h["action"] == "EXPORT"
-                                else t["green_light"]
+                                else t["primary_light"]
                             ),
                             padding=10,
                             border_radius=16,
@@ -1281,9 +1410,9 @@ class ActivityTrackerUI:
                                 if h["action"] == "EXPORT"
                                 else ft.Icons.RESTORE,
                                 color=(
-                                    DUO_BLUE
+                                    COLOR_SKY
                                     if h["action"] == "EXPORT"
-                                    else DUO_GREEN
+                                    else BRAND_PRIMARY
                                 ),
                                 size=22,
                             ),
@@ -1335,14 +1464,14 @@ class ActivityTrackerUI:
                                     tr("btn_export", self.lang),
                                     on_click=self._on_export_backup,
                                     icon=ft.Icons.UPLOAD_FILE,
-                                    bg=DUO_BLUE,
+                                    bg=COLOR_SKY,
                                     expand=True,
                                 ),
                                 _duo_button(
                                     tr("btn_restore", self.lang),
                                     on_click=self._on_restore_backup,
                                     icon=ft.Icons.RESTORE,
-                                    bg=DUO_GREEN,
+                                    bg=BRAND_PRIMARY,
                                     expand=True,
                                 ),
                             ],
@@ -1497,10 +1626,10 @@ class ActivityTrackerUI:
                     label,
                     size=13,
                     weight=ft.FontWeight.BOLD if active else ft.FontWeight.NORMAL,
-                    color=DUO_WHITE if active else t["subtext"],
+                    color=COLOR_WHITE if active else t["subtext"],
                 ),
-                bgcolor=DUO_GREEN if active else ft.Colors.TRANSPARENT,
-                padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+                bgcolor=BRAND_PRIMARY if active else ft.Colors.TRANSPARENT,
+                padding=ft.Padding.symmetric(horizontal=18, vertical=8),
                 border_radius=16,
                 on_click=lambda _, m=mode: self._on_switch_auth_mode(m),
             )
@@ -1521,14 +1650,14 @@ class ActivityTrackerUI:
 
         icon_widget = ft.Image(
             src="/icon.png",
-            width=72,
-            height=72,
+            width=76,
+            height=76,
             fit=ft.BoxFit.CONTAIN,
-            border_radius=20,
+            border_radius=22,
             error_content=ft.Icon(
                 ft.Icons.LOCAL_FIRE_DEPARTMENT,
-                color=DUO_ORANGE,
-                size=48,
+                color=COLOR_FLAME,
+                size=52,
             ),
         )
 
@@ -1541,9 +1670,10 @@ class ActivityTrackerUI:
             [
                 ft.Container(
                     content=icon_widget,
-                    bgcolor=DUO_WHITE if self.is_dark else t["green_light"],
+                    bgcolor=COLOR_WHITE if self.is_dark else t["primary_light"],
                     padding=10,
-                    border_radius=28,
+                    border_radius=26,
+                    border=ft.Border(bottom=ft.BorderSide(3.0, BRAND_PRIMARY_BEVEL)),
                 ),
                 ft.Text(
                     tr("auth_welcome_title", self.lang),
@@ -1569,14 +1699,14 @@ class ActivityTrackerUI:
                     main_btn_label,
                     on_click=main_btn_handler,
                     icon=ft.Icons.LOGIN if is_login else ft.Icons.PERSON_ADD,
-                    bg=DUO_GREEN,
+                    bg=BRAND_PRIMARY,
                     height=50,
                 ),
                 _duo_button(
                     tr("btn_guest_mode", self.lang),
                     on_click=self._on_guest_login,
                     icon=ft.Icons.PLAY_ARROW_ROUNDED,
-                    bg=DUO_BLUE,
+                    bg=COLOR_SKY,
                     height=46,
                 ),
             ],
@@ -1622,10 +1752,11 @@ class ActivityTrackerUI:
             ft.Row(
                 [
                     ft.Container(
-                        content=ft.Icon(ft.Icons.PERSON, size=40, color=DUO_WHITE),
-                        bgcolor=DUO_GREEN,
+                        content=ft.Icon(ft.Icons.PERSON, size=38, color=COLOR_WHITE),
+                        bgcolor=BRAND_PRIMARY,
                         padding=14,
-                        border_radius=30,
+                        border_radius=28,
+                        border=ft.Border(bottom=ft.BorderSide(3.5, BRAND_PRIMARY_BEVEL)),
                     ),
                     ft.Column(
                         [
@@ -1638,7 +1769,7 @@ class ActivityTrackerUI:
                             ft.Text(
                                 f"@{u.get('username', 'athlete')}",
                                 size=13,
-                                color=DUO_BLUE,
+                                color=COLOR_SKY,
                                 weight=ft.FontWeight.BOLD,
                             ),
                             ft.Text(
@@ -1670,6 +1801,7 @@ class ActivityTrackerUI:
                 padding=12,
                 border_radius=18,
                 bgcolor=t["border"],
+                border=ft.Border(bottom=ft.BorderSide(3.0, t["card_border_bottom"])),
                 content=ft.Column(
                     [
                         ft.Icon(icon, size=24, color=icon_color),
@@ -1693,19 +1825,19 @@ class ActivityTrackerUI:
             [
                 _mini_stat(
                     ft.Icons.FITNESS_CENTER,
-                    DUO_BLUE,
+                    COLOR_SKY,
                     str(len(activities)),
                     tr("stat_total_habits", self.lang),
                 ),
                 _mini_stat(
                     ft.Icons.LOCAL_FIRE_DEPARTMENT,
-                    DUO_ORANGE,
+                    COLOR_FLAME,
                     f"{best_streak}d",
                     tr("stat_best_streak", self.lang),
                 ),
                 _mini_stat(
                     ft.Icons.CHECK_CIRCLE,
-                    DUO_GREEN,
+                    COLOR_MINT,
                     str(total_logs),
                     tr("stat_total_checkins", self.lang),
                 ),
@@ -1718,15 +1850,16 @@ class ActivityTrackerUI:
         if bmi_result:
             bmi_val, cat_key = bmi_result
             bmi_colors = {
-                "bmi_underweight": DUO_BLUE,
-                "bmi_normal": DUO_GREEN,
-                "bmi_overweight": DUO_ORANGE,
-                "bmi_obese": DUO_RED,
+                "bmi_underweight": COLOR_SKY,
+                "bmi_normal": COLOR_MINT,
+                "bmi_overweight": COLOR_AMBER,
+                "bmi_obese": COLOR_CORAL,
             }
-            badge_color = bmi_colors.get(cat_key, DUO_GREEN)
+            badge_color = bmi_colors.get(cat_key, BRAND_PRIMARY)
             bmi_control = ft.Container(
                 bgcolor=ft.Colors.with_opacity(0.15, badge_color),
                 border_radius=16,
+                border=ft.Border(bottom=ft.BorderSide(2.5, badge_color)),
                 padding=ft.Padding.symmetric(horizontal=14, vertical=10),
                 content=ft.Row(
                     [
@@ -1781,7 +1914,7 @@ class ActivityTrackerUI:
                         tr("profile_btn_save", self.lang),
                         on_click=self._on_save_profile,
                         icon=ft.Icons.SAVE,
-                        bg=DUO_GREEN,
+                        bg=BRAND_PRIMARY,
                         height=50,
                     ),
                 ],
@@ -1795,7 +1928,7 @@ class ActivityTrackerUI:
             tr("profile_btn_logout", self.lang),
             on_click=self._on_logout,
             icon=ft.Icons.LOGOUT,
-            bg=DUO_RED,
+            bg=COLOR_CORAL,
             height=46,
         )
 
@@ -1840,7 +1973,7 @@ def main(page: ft.Page) -> None:
     page.fonts = {
         "Nunito": "https://fonts.gstatic.com/s/nunito/v26/XRXV3I6Li01BKofINeaB.ttf"
     }
-    page.theme = ft.Theme(font_family="Nunito", color_scheme_seed=DUO_GREEN)
+    page.theme = ft.Theme(font_family="Nunito", color_scheme_seed=BRAND_PRIMARY)
     page.bgcolor = LIGHT_THEME["bg"]
     page.window.width = MOBILE_WIDTH
     page.window.height = MOBILE_HEIGHT
@@ -1867,7 +2000,7 @@ def main(page: ft.Page) -> None:
     page.navigation_bar = ft.NavigationBar(
         selected_index=initial_tab,
         bgcolor=LIGHT_THEME["nav_bg"],
-        indicator_color=LIGHT_THEME["green_light"],
+        indicator_color=LIGHT_THEME["primary_light"],
         visible=controller.current_user is not None,
         on_change=lambda e: controller.render_tab(int(e.control.selected_index or 0)),
         destinations=[
