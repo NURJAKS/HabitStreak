@@ -109,3 +109,47 @@ def test_mobile_ui_error_handling() -> None:
     ui.backup_path_in.value = "missing_file.json"
     ui._on_restore_backup()
     assert ui.last_error and ui.last_message.startswith("Error:")
+
+
+def test_language_and_theme_switching() -> None:
+    """Verify switching languages (KZ, RU, EN) and toggling Light/Dark themes."""
+    fake_page = MagicMock(spec=ft.Page)
+    fake_page.navigation_bar = ft.NavigationBar(
+        destinations=[
+            ft.NavigationBarDestination(icon=ft.Icons.HOME, label="1"),
+            ft.NavigationBarDestination(icon=ft.Icons.CHECK, label="2"),
+            ft.NavigationBarDestination(icon=ft.Icons.BAR_CHART, label="3"),
+            ft.NavigationBarDestination(icon=ft.Icons.BACKUP, label="4"),
+        ]
+    )
+    db = connect(":memory:")
+    ui = ActivityTrackerUI(fake_page, db)
+
+    # Initial state
+    assert ui.lang == "en"
+    assert not ui.is_dark
+
+    # Switch to Kazakh
+    ui.set_language("kz")
+    assert ui.lang == "kz"
+    assert fake_page.update.called
+
+    # Switch to Russian
+    ui.set_language("ru")
+    assert ui.lang == "ru"
+    assert fake_page.update.called
+
+    # Switch back to English
+    ui.set_language("en")
+    assert ui.lang == "en"
+
+    # Toggle to Dark mode
+    ui.toggle_theme()
+    assert ui.is_dark is True
+    assert fake_page.theme_mode == ft.ThemeMode.DARK
+
+    # Toggle back to Light mode
+    ui.toggle_theme()
+    assert ui.is_dark is False
+    assert fake_page.theme_mode == ft.ThemeMode.LIGHT
+

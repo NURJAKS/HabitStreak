@@ -1,0 +1,242 @@
+"""Internationalization (i18n) localization dictionary for Physical Activity Tracker.
+
+Supports Kazakh (kz), Russian (ru), and English (en).
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+SUPPORTED_LANGUAGES = ("kz", "ru", "en")
+DEFAULT_LANGUAGE = "en"
+
+TRANSLATIONS: dict[str, dict[str, str]] = {
+    "en": {
+        # App Header
+        "app_title": "HabitStreak",
+        "app_subtitle": "Keep your daily activity chain alive!",
+        "lang_switch_tooltip": "Change language",
+        "theme_toggle_light": "Switch to Dark Mode",
+        "theme_toggle_dark": "Switch to Light Mode",
+        # Navigation Tabs
+        "tab_habits": "Habits",
+        "tab_checkin": "Check-In",
+        "tab_weekly": "Weekly",
+        "tab_backup": "Backup",
+        # Habits Tab KPI & Content
+        "streak_kpi": "{count} Day Streak",
+        "streak_kpi_sub": "Top active chain",
+        "done_kpi": "{done} / {total} Done",
+        "done_kpi_sub": "Today's goals",
+        "todays_habits_title": "Today's Habits",
+        "today_progress_sub": "Today: {today} / {target} {unit}  •  Best: {best}d",
+        "empty_habits_title": "Time to build your first healthy habit!",
+        "empty_habits_sub": "Tap the green + button in the bottom right corner to start.",
+        "delete_habit_tooltip": "Delete habit",
+        "fab_tooltip": "Add New Habit Goal",
+        # BottomSheet Modal
+        "modal_new_habit": "New Daily Habit Goal",
+        "field_habit_name": "Habit Name (e.g. Morning Run)",
+        "field_category": "Category",
+        "field_target": "Daily Target (e.g. 5.0)",
+        "field_unit": "Unit (km, steps, reps, mins, L)",
+        "btn_create_habit": "CREATE HABIT",
+        "msg_habit_created": "Awesome! New habit goal created!",
+        "msg_habit_deleted": "Habit deleted.",
+        # Check-In Tab
+        "empty_checkin_title": "No habits to check in yet!",
+        "empty_checkin_sub": "Go to the Habits tab and tap + to create your first goal.",
+        "field_choose_habit": "Choose Habit to Log",
+        "field_date": "Date (YYYY-MM-DD)",
+        "field_workout_note": "Workout Note (optional)",
+        "btn_boost_25": "+25%",
+        "btn_boost_50": "+50%",
+        "btn_boost_100": "100% Goal",
+        "btn_complete_checkin": "COMPLETE CHECK-IN",
+        "recent_checkins_title": "Recent Check-Ins",
+        "msg_checkin_saved": "Check-in saved! Keep your streak alive!",
+        "err_select_activity": "Please select an activity first",
+        # Weekly Analytics Tab
+        "empty_weekly_title": "No weekly stats yet!",
+        "empty_weekly_sub": "Create a habit and log your daily workouts to unlock analytics.",
+        "weekly_report_title": "7-Day League Report ({start} → {end})",
+        "weekly_score": "Weekly Score: {rate}%",
+        "weekly_completed_summary": "Completed {done} of {total} daily goals this week!",
+        "chain_7day_title": "7-Day Consistency Chain",
+        "volume_breakdown_title": "Habit Volume Breakdown",
+        "weekly_volume": "Weekly Volume: {volume} {unit}",
+        # Backup Tab
+        "safe_vault_title": "Safe Vault: Backup & Restore",
+        "safe_vault_sub": "Save your streaks to a local JSON file or restore your progress atomically at any time.",
+        "field_backup_file": "Backup File (.json)",
+        "btn_export": "EXPORT",
+        "btn_restore": "RESTORE",
+        "backup_audit_title": "Backup Audit Log",
+        "empty_backup_title": "No backups recorded yet",
+        "empty_backup_sub": "Tap EXPORT above to create your first JSON snapshot.",
+        "msg_exported": "Exported {activities} goals and {logs} logs!",
+        "msg_restored": "Restored {activities} goals and {logs} logs!",
+        # Categories
+        "cat_Cardio": "Cardio",
+        "cat_Steps": "Steps",
+        "cat_Strength": "Strength",
+        "cat_Hydration": "Hydration",
+        "cat_Flexibility": "Flexibility",
+        "cat_Sport": "Sport",
+    },
+    "ru": {
+        # App Header
+        "app_title": "HabitStreak",
+        "app_subtitle": "Сохраняй непрерывную цепочку привычек!",
+        "lang_switch_tooltip": "Сменить язык",
+        "theme_toggle_light": "Включить темную тему",
+        "theme_toggle_dark": "Включить светлую тему",
+        # Navigation Tabs
+        "tab_habits": "Привычки",
+        "tab_checkin": "Отметка",
+        "tab_weekly": "Аналитика",
+        "tab_backup": "Резерв",
+        # Habits Tab KPI & Content
+        "streak_kpi": "Серия: {count} дн.",
+        "streak_kpi_sub": "Лучшая серия",
+        "done_kpi": "{done} / {total} Сделано",
+        "done_kpi_sub": "Цели на сегодня",
+        "todays_habits_title": "Привычки на сегодня",
+        "today_progress_sub": "Сегодня: {today} / {target} {unit}  •  Рекорд: {best} дн.",
+        "empty_habits_title": "Пора завести первую полезную привычку!",
+        "empty_habits_sub": "Нажмите зеленую кнопку + внизу экрана, чтобы начать.",
+        "delete_habit_tooltip": "Удалить привычку",
+        "fab_tooltip": "Добавить новую привычку",
+        # BottomSheet Modal
+        "modal_new_habit": "Новая цель привычки",
+        "field_habit_name": "Название привычки (напр. Пробежка)",
+        "field_category": "Категория",
+        "field_target": "Дневная цель (напр. 5.0)",
+        "field_unit": "Единица (км, шаги, повт, мин, л)",
+        "btn_create_habit": "СОЗДАТЬ ПРИВЫЧКУ",
+        "msg_habit_created": "Отлично! Новая привычка создана!",
+        "msg_habit_deleted": "Привычка удалена.",
+        # Check-In Tab
+        "empty_checkin_title": "Нет привычек для отметки!",
+        "empty_checkin_sub": "Перейдите во вкладку «Привычки» и нажмите +, чтобы создать цель.",
+        "field_choose_habit": "Выберите привычку для отметки",
+        "field_date": "Дата (ГГГГ-ММ-ДД)",
+        "field_workout_note": "Заметка о тренировке (необязательно)",
+        "btn_boost_25": "+25%",
+        "btn_boost_50": "+50%",
+        "btn_boost_100": "100% Цель",
+        "btn_complete_checkin": "ОТМЕТИТЬ ВЫПОЛНЕНИЕ",
+        "recent_checkins_title": "Последние отметки",
+        "msg_checkin_saved": "Отметка сохранена! Продолжай серию!",
+        "err_select_activity": "Сначала выберите привычку",
+        # Weekly Analytics Tab
+        "empty_weekly_title": "Статистики пока нет!",
+        "empty_weekly_sub": "Создайте привычку и отмечайте тренировки, чтобы открыть аналитику.",
+        "weekly_report_title": "Отчет Лиги за 7 дней ({start} → {end})",
+        "weekly_score": "Успеваемость за неделю: {rate}%",
+        "weekly_completed_summary": "Выполнено {done} из {total} ежедневных целей на этой неделе!",
+        "chain_7day_title": "Цепочка постоянства за 7 дней",
+        "volume_breakdown_title": "Объем по привычкам",
+        "weekly_volume": "Объем за неделю: {volume} {unit}",
+        # Backup Tab
+        "safe_vault_title": "Хранилище: Бэкап и Восстановление",
+        "safe_vault_sub": "Сохраняйте серии в локальный JSON-файл или восстанавливайте данные в любое время.",
+        "field_backup_file": "Файл резервной копии (.json)",
+        "btn_export": "ЭКСПОРТ",
+        "btn_restore": "ВОССТАНОВИТЬ",
+        "backup_audit_title": "Журнал аудита бэкапов",
+        "empty_backup_title": "Бэкапов пока нет",
+        "empty_backup_sub": "Нажмите ЭКСПОРТ выше, чтобы создать первый снимок данных.",
+        "msg_exported": "Экспортировано: {activities} привычек и {logs} отметок!",
+        "msg_restored": "Восстановлено: {activities} привычек и {logs} отметок!",
+        # Categories
+        "cat_Cardio": "Кардио",
+        "cat_Steps": "Шаги",
+        "cat_Strength": "Силовые",
+        "cat_Hydration": "Вода",
+        "cat_Flexibility": "Растяжка",
+        "cat_Sport": "Спорт",
+    },
+    "kz": {
+        # App Header
+        "app_title": "HabitStreak",
+        "app_subtitle": "Күнделікті әдеттер тізбегін үзбеңіз!",
+        "lang_switch_tooltip": "Тілді ауыстыру",
+        "theme_toggle_light": "Күңгірт режимге ауысу",
+        "theme_toggle_dark": "Жарық режимге ауысу",
+        # Navigation Tabs
+        "tab_habits": "Әдеттер",
+        "tab_checkin": "Белгілеу",
+        "tab_weekly": "Апталық",
+        "tab_backup": "Көшірме",
+        # Habits Tab KPI & Content
+        "streak_kpi": "{count} күн тізбек",
+        "streak_kpi_sub": "Белсенді тізбек",
+        "done_kpi": "{done} / {total} Орындалды",
+        "done_kpi_sub": "Бүгінгі мақсат",
+        "todays_habits_title": "Бүгінгі әдеттер",
+        "today_progress_sub": "Бүгін: {today} / {target} {unit}  •  Үздік: {best} к.",
+        "empty_habits_title": "Алғашқы пайдалы әдетіңізді бастайтын уақыт!",
+        "empty_habits_sub": "Бастау үшін төменгі оң жақтағы жасыл + түймесін басыңыз.",
+        "delete_habit_tooltip": "Әдетті өшіру",
+        "fab_tooltip": "Жаңа әдет мақсатын қосу",
+        # BottomSheet Modal
+        "modal_new_habit": "Жаңа күнделікті әдет",
+        "field_habit_name": "Әдет атауы (мыс. Таңғы жүгіру)",
+        "field_category": "Санат",
+        "field_target": "Күнделікті мақсат (мыс. 5.0)",
+        "field_unit": "Өлшем (км, қадам, рет, мин, л)",
+        "btn_create_habit": "ӘДЕТТІ ҚҰРУ",
+        "msg_habit_created": "Керемет! Жаңа әдет мақсаты құрылды!",
+        "msg_habit_deleted": "Әдет өшірілді.",
+        # Check-In Tab
+        "empty_checkin_title": "Әзірге белгілейтін әдет жоқ!",
+        "empty_checkin_sub": "«Әдеттер» бөліміне өтіп, + түймесін басып мақсат қосыңыз.",
+        "field_choose_habit": "Белгілеу үшін әдетті таңдаңыз",
+        "field_date": "Күні (ЖЖЖЖ-АА-КК)",
+        "field_workout_note": "Жаттығу жазбасы (міндетті емес)",
+        "btn_boost_25": "+25%",
+        "btn_boost_50": "+50%",
+        "btn_boost_100": "100% Мақсат",
+        "btn_complete_checkin": "ОРЫНДАЛДЫ ДЕП БЕЛГІЛЕУ",
+        "recent_checkins_title": "Соңғы белгілеулер",
+        "msg_checkin_saved": "Белгіленді! Тізбегіңізді үзбеңіз!",
+        "err_select_activity": "Алдымен әдетті таңдаңыз",
+        # Weekly Analytics Tab
+        "empty_weekly_title": "Апталық статистика әлі жоқ!",
+        "empty_weekly_sub": "Аналитиканы көру үшін әдет құрып, күнделікті орындалуын белгілеңіз.",
+        "weekly_report_title": "7 күндік Лига есебі ({start} → {end})",
+        "weekly_score": "Апталық нәтиже: {rate}%",
+        "weekly_completed_summary": "Осы аптада {total} күнделікті мақсаттың {done}-і орындалды!",
+        "chain_7day_title": "7 күндік тұрақтылық тізбегі",
+        "volume_breakdown_title": "Әдеттер бойынша көлем",
+        "weekly_volume": "Апталық көлем: {volume} {unit}",
+        # Backup Tab
+        "safe_vault_title": "Қор: Көшіру және Қалпына келтіру",
+        "safe_vault_sub": "Тізбектеріңізді жергілікті JSON файлына сақтаңыз немесе кез келген уақытта қалпына келтіріңіз.",
+        "field_backup_file": "Көшірме файлы (.json)",
+        "btn_export": "ЭКСПОРТ",
+        "btn_restore": "ҚАЛПЫНА КЕЛТІРУ",
+        "backup_audit_title": "Көшірмелер аудиті",
+        "empty_backup_title": "Әзірге көшірмелер жоқ",
+        "empty_backup_sub": "Алғашқы көшірмені жасау үшін жоғарыдағы ЭКСПОРТ түймесін басыңыз.",
+        "msg_exported": "Экспортталды: {activities} әдет және {logs} белгілеу!",
+        "msg_restored": "Қалпына келтірілді: {activities} әдет және {logs} белгілеу!",
+        # Categories
+        "cat_Cardio": "Кардио",
+        "cat_Steps": "Қадамдар",
+        "cat_Strength": "Күш жаттығулары",
+        "cat_Hydration": "Су ішу",
+        "cat_Flexibility": "Икемділік",
+        "cat_Sport": "Спорт",
+    },
+}
+
+
+def tr(key: str, lang: str = "en", **kwargs: Any) -> str:
+    """Translate a localization key for the specified language with format interpolation."""
+    lang_dict = TRANSLATIONS.get(lang, TRANSLATIONS[DEFAULT_LANGUAGE])
+    template = lang_dict.get(key, TRANSLATIONS[DEFAULT_LANGUAGE].get(key, key))
+    if kwargs:
+        return template.format(**kwargs)
+    return template
