@@ -185,11 +185,12 @@ def _duo_button(
         ),
         bgcolor=bg,
         border_radius=18,
-        border=ft.Border(
-            top=ft.BorderSide(1.0, ft.Colors.with_opacity(0.18, ft.Colors.WHITE)),
-            left=ft.BorderSide(1.0, ft.Colors.with_opacity(0.10, ft.Colors.WHITE)),
-            right=ft.BorderSide(1.0, ft.Colors.with_opacity(0.10, ft.Colors.WHITE)),
-            bottom=ft.BorderSide(4.0, lip_color),
+        border=ft.Border.all(1.0, ft.Colors.with_opacity(0.18, ft.Colors.WHITE)),
+        shadow=ft.BoxShadow(
+            spread_radius=0,
+            blur_radius=0,
+            color=lip_color,
+            offset=ft.Offset(0, 4),
         ),
         height=height,
         expand=expand,
@@ -253,17 +254,12 @@ class ActivityTrackerUI:
             border_radius=22,
             bgcolor=bg or t["card_bg"],
             padding=padding,
-            border=ft.Border(
-                top=ft.BorderSide(1.5, t["card_border_side"]),
-                left=ft.BorderSide(1.5, t["card_border_side"]),
-                right=ft.BorderSide(1.5, t["card_border_side"]),
-                bottom=ft.BorderSide(4.0, t["card_border_bottom"]),
-            ),
+            border=ft.Border.all(1.5, t["card_border_side"]),
             shadow=ft.BoxShadow(
                 spread_radius=0,
-                blur_radius=8,
-                color=t["shadow"],
-                offset=ft.Offset(0, 2),
+                blur_radius=0,
+                color=t["card_border_bottom"],
+                offset=ft.Offset(0, 4),
             ),
             content=content,
         )
@@ -402,17 +398,14 @@ class ActivityTrackerUI:
         )
         self.profile_age_in = ft.TextField(
             label=tr("profile_field_age", self.lang),
-            prefix_icon=ft.Icons.CAKE,
             border=rounded,
         )
         self.profile_weight_in = ft.TextField(
             label=tr("profile_field_weight", self.lang),
-            prefix_icon=ft.Icons.MONITOR_WEIGHT,
             border=rounded,
         )
         self.profile_height_in = ft.TextField(
             label=tr("profile_field_height", self.lang),
-            prefix_icon=ft.Icons.HEIGHT,
             border=rounded,
         )
         self.profile_goals_in = ft.TextField(
@@ -558,14 +551,11 @@ class ActivityTrackerUI:
             padding=ft.Padding.symmetric(horizontal=16, vertical=12),
             bgcolor=header_bg,
             border_radius=22,
-            border=ft.Border(
-                top=ft.BorderSide(1.0, ft.Colors.with_opacity(0.20, ft.Colors.WHITE)),
-                bottom=ft.BorderSide(4.0, header_lip),
-            ),
+            border=ft.Border.all(1.0, ft.Colors.with_opacity(0.20, ft.Colors.WHITE)),
             shadow=ft.BoxShadow(
                 spread_radius=0,
-                blur_radius=10,
-                color=self.theme["shadow"],
+                blur_radius=0,
+                color=header_lip,
                 offset=ft.Offset(0, 4),
             ),
             content=ft.Row(
@@ -710,11 +700,12 @@ class ActivityTrackerUI:
             bgcolor=bg_color,
             padding=ft.Padding.symmetric(horizontal=12, vertical=6),
             border_radius=14,
-            border=ft.Border(
-                top=ft.BorderSide(1.0, border_color),
-                left=ft.BorderSide(1.0, border_color),
-                right=ft.BorderSide(1.0, border_color),
-                bottom=ft.BorderSide(2.5, COLOR_FLAME_BEVEL if active else t["card_border_bottom"]),
+            border=ft.Border.all(1.5, border_color),
+            shadow=ft.BoxShadow(
+                spread_radius=0,
+                blur_radius=0,
+                color=COLOR_FLAME_BEVEL if active else t["card_border_bottom"],
+                offset=ft.Offset(0, 2.5),
             ),
             content=ft.Row(
                 [
@@ -841,11 +832,12 @@ class ActivityTrackerUI:
             padding=14,
             bgcolor=t["flame_light"],
             border_radius=20,
-            border=ft.Border(
-                top=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_FLAME)),
-                left=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_FLAME)),
-                right=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_FLAME)),
-                bottom=ft.BorderSide(3.5, COLOR_FLAME_BEVEL),
+            border=ft.Border.all(1.5, ft.Colors.with_opacity(0.35, COLOR_FLAME)),
+            shadow=ft.BoxShadow(
+                spread_radius=0,
+                blur_radius=0,
+                color=COLOR_FLAME_BEVEL,
+                offset=ft.Offset(0, 3.5),
             ),
             content=ft.Row(
                 [
@@ -880,11 +872,12 @@ class ActivityTrackerUI:
             padding=14,
             bgcolor=t["primary_light"],
             border_radius=20,
-            border=ft.Border(
-                top=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, BRAND_PRIMARY)),
-                left=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, BRAND_PRIMARY)),
-                right=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, BRAND_PRIMARY)),
-                bottom=ft.BorderSide(3.5, BRAND_PRIMARY_BEVEL),
+            border=ft.Border.all(1.5, ft.Colors.with_opacity(0.35, BRAND_PRIMARY)),
+            shadow=ft.BoxShadow(
+                spread_radius=0,
+                blur_radius=0,
+                color=BRAND_PRIMARY_BEVEL,
+                offset=ft.Offset(0, 3.5),
             ),
             content=ft.Row(
                 [
@@ -1270,11 +1263,12 @@ class ActivityTrackerUI:
             padding=18,
             bgcolor=t["amber_light"],
             border_radius=22,
-            border=ft.Border(
-                top=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_AMBER)),
-                left=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_AMBER)),
-                right=ft.BorderSide(1.5, ft.Colors.with_opacity(0.35, COLOR_AMBER)),
-                bottom=ft.BorderSide(4.0, COLOR_AMBER_BEVEL),
+            border=ft.Border.all(1.5, ft.Colors.with_opacity(0.35, COLOR_AMBER)),
+            shadow=ft.BoxShadow(
+                spread_radius=0,
+                blur_radius=0,
+                color=COLOR_AMBER_BEVEL,
+                offset=ft.Offset(0, 4.0),
             ),
             content=ft.Column(
                 [
@@ -1673,7 +1667,13 @@ class ActivityTrackerUI:
                     bgcolor=COLOR_WHITE if self.is_dark else t["primary_light"],
                     padding=10,
                     border_radius=26,
-                    border=ft.Border(bottom=ft.BorderSide(3.0, BRAND_PRIMARY_BEVEL)),
+                    border=ft.Border.all(1.5, ft.Colors.with_opacity(0.3, BRAND_PRIMARY)),
+                    shadow=ft.BoxShadow(
+                        spread_radius=0,
+                        blur_radius=0,
+                        color=BRAND_PRIMARY_BEVEL,
+                        offset=ft.Offset(0, 3.0),
+                    ),
                 ),
                 ft.Text(
                     tr("auth_welcome_title", self.lang),
@@ -1756,7 +1756,12 @@ class ActivityTrackerUI:
                         bgcolor=BRAND_PRIMARY,
                         padding=14,
                         border_radius=28,
-                        border=ft.Border(bottom=ft.BorderSide(3.5, BRAND_PRIMARY_BEVEL)),
+                        shadow=ft.BoxShadow(
+                            spread_radius=0,
+                            blur_radius=0,
+                            color=BRAND_PRIMARY_BEVEL,
+                            offset=ft.Offset(0, 3.5),
+                        ),
                     ),
                     ft.Column(
                         [
@@ -1801,7 +1806,13 @@ class ActivityTrackerUI:
                 padding=12,
                 border_radius=18,
                 bgcolor=t["border"],
-                border=ft.Border(bottom=ft.BorderSide(3.0, t["card_border_bottom"])),
+                border=ft.Border.all(1.5, t["card_border_side"]),
+                shadow=ft.BoxShadow(
+                    spread_radius=0,
+                    blur_radius=0,
+                    color=t["card_border_bottom"],
+                    offset=ft.Offset(0, 3.0),
+                ),
                 content=ft.Column(
                     [
                         ft.Icon(icon, size=24, color=icon_color),
@@ -1849,21 +1860,29 @@ class ActivityTrackerUI:
         bmi_result = calculate_bmi(u.get("weight"), u.get("height"))
         if bmi_result:
             bmi_val, cat_key = bmi_result
-            bmi_colors = {
-                "bmi_underweight": COLOR_SKY,
-                "bmi_normal": COLOR_MINT,
-                "bmi_overweight": COLOR_AMBER,
-                "bmi_obese": COLOR_CORAL,
+            bmi_styles = {
+                "bmi_underweight": (COLOR_SKY, t["sky_light"], COLOR_SKY_BEVEL),
+                "bmi_normal": (COLOR_MINT, t["mint_light"], COLOR_MINT_BEVEL),
+                "bmi_overweight": (COLOR_AMBER, t["amber_light"], COLOR_AMBER_BEVEL),
+                "bmi_obese": (COLOR_CORAL, t["coral_light"], COLOR_CORAL_BEVEL),
             }
-            badge_color = bmi_colors.get(cat_key, BRAND_PRIMARY)
+            badge_fg, badge_bg, badge_lip = bmi_styles.get(
+                cat_key, (BRAND_PRIMARY, t["primary_light"], BRAND_PRIMARY_BEVEL)
+            )
             bmi_control = ft.Container(
-                bgcolor=ft.Colors.with_opacity(0.15, badge_color),
+                bgcolor=badge_bg,
                 border_radius=16,
-                border=ft.Border(bottom=ft.BorderSide(2.5, badge_color)),
+                border=ft.Border.all(1.5, ft.Colors.with_opacity(0.4, badge_fg)),
+                shadow=ft.BoxShadow(
+                    spread_radius=0,
+                    blur_radius=0,
+                    color=badge_lip,
+                    offset=ft.Offset(0, 2.5),
+                ),
                 padding=ft.Padding.symmetric(horizontal=14, vertical=10),
                 content=ft.Row(
                     [
-                        ft.Icon(ft.Icons.SPEED, size=22, color=badge_color),
+                        ft.Icon(ft.Icons.SPEED, size=22, color=badge_fg),
                         ft.Text(
                             tr(
                                 "bmi_title",
@@ -1873,7 +1892,7 @@ class ActivityTrackerUI:
                             ),
                             size=14,
                             weight=ft.FontWeight.BOLD,
-                            color=badge_color,
+                            color=badge_fg,
                         ),
                     ],
                     spacing=8,
@@ -1968,20 +1987,25 @@ class ActivityTrackerUI:
 
 def main(page: ft.Page) -> None:
     """Configure Duolingo mobile theme, Nunito font, FAB, and bottom navigation."""
+    init_lang = os.environ.get("TRACKER_INITIAL_LANG", DEFAULT_LANGUAGE)
+    init_dark = os.environ.get("TRACKER_INITIAL_DARK", "0") == "1"
+
     page.title = "HabitStreak — Physical Activity Tracker"
-    page.theme_mode = ft.ThemeMode.LIGHT
+    page.theme_mode = ft.ThemeMode.DARK if init_dark else ft.ThemeMode.LIGHT
     page.fonts = {
         "Nunito": "https://fonts.gstatic.com/s/nunito/v26/XRXV3I6Li01BKofINeaB.ttf"
     }
     page.theme = ft.Theme(font_family="Nunito", color_scheme_seed=BRAND_PRIMARY)
-    page.bgcolor = LIGHT_THEME["bg"]
     page.window.width = MOBILE_WIDTH
     page.window.height = MOBILE_HEIGHT
     page.padding = 16
 
     db_path = _resolve_app_path(DEFAULT_DB_NAME)
     db = connect(db_path)
-    controller = ActivityTrackerUI(page, db)
+    controller = ActivityTrackerUI(
+        page, db, initial_lang=init_lang, is_dark=init_dark
+    )
+    page.bgcolor = controller.theme["bg"]
     page.floating_action_button = controller.fab
 
     route_map = {"/0": 0, "/1": 1, "/2": 2, "/3": 3, "/4": 4}
@@ -1999,8 +2023,8 @@ def main(page: ft.Page) -> None:
 
     page.navigation_bar = ft.NavigationBar(
         selected_index=initial_tab,
-        bgcolor=LIGHT_THEME["nav_bg"],
-        indicator_color=LIGHT_THEME["primary_light"],
+        bgcolor=controller.theme["nav_bg"],
+        indicator_color=controller.theme["primary_light"],
         visible=controller.current_user is not None,
         on_change=lambda e: controller.render_tab(int(e.control.selected_index or 0)),
         destinations=[
