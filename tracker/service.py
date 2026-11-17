@@ -449,6 +449,179 @@ def get_backup_history(db: sqlite3.Connection) -> list[dict[str, Any]]:
     return [dict(r) for r in rows]
 
 
+def get_or_create_steps_activity(
+    db: sqlite3.Connection,
+    target_steps: float = 10000.0,
+    title: str = "Daily Steps",
+) -> dict[str, Any]:
+    """Find an existing 'Steps' category activity or create a default one."""
+    row = db.execute(
+        "SELECT id, title, category, target_value, unit, created_at "
+        "FROM activities WHERE category = 'Steps' "
+        "ORDER BY id ASC LIMIT 1"
+    ).fetchone()
+    if row:
+        return dict(row)
+    act_id = add_activity(
+        db,
+        title=title,
+        category="Steps",
+        target_value=target_steps,
+        unit="steps",
+    )
+    return get_activity(db, act_id)
+
+
+def get_health_sync_config(db: sqlite3.Connection) -> dict[str, Any]:
+    """Fetch the single-row health_sync_config, creating default if missing."""
+    row = db.execute(
+        "SELECT id, is_connected, auto_sync, last_synced_at, last_sync_status, "
+        "last_steps_synced, target_activity_id FROM health_sync_config WHERE id = 1"
+    ).fetchone()
+    if row:
+        return dict(row)
+    db.execute(
+        "INSERT OR IGNORE INTO health_sync_config "
+        "(id, is_connected, auto_sync, last_synced_at, last_sync_status, last_steps_synced, target_activity_id) "
+        "VALUES (1, 0, 1, NULL, 'IDLE', 0, NULL)"
+    )
+    db.commit()
+    row = db.execute(
+        "SELECT id, is_connected, auto_sync, last_synced_at, last_sync_status, "
+        "last_steps_synced, target_activity_id FROM health_sync_config WHERE id = 1"
+    ).fetchone()
+    return dict(row) if row else {}
+
+
+def update_health_sync_config(
+    db: sqlite3.Connection,
+    *,
+    is_connected: bool | None = None,
+    auto_sync: bool | None = None,
+    last_synced_at: str | None = None,
+    last_sync_status: str | None = None,
+    last_steps_synced: int | None = None,
+    target_activity_id: int | None = None,
+) -> dict[str, Any]:
+    """Update Google Health Connect sync settings."""
+    current = get_health_sync_config(db)
+    new_connected = int(is_connected) if is_connected is not None else current["is_connected"]
+    new_auto = int(auto_sync) if auto_sync is not None else current["auto_sync"]
+    new_synced_at = last_synced_at if last_synced_at is not None else current["last_synced_at"]
+    new_status = (
+        (last_sync_status or "").strip()
+        if last_sync_status is not None
+        else current["last_sync_status"]
+    )
+    new_steps = (
+        int(last_steps_synced)
+        if last_steps_synced is not None
+        else current["last_steps_synced"]
+    )
+    new_act_id = (
+        target_activity_id
+        if target_activity_id is not None
+        else current["target_activity_id"]
+    )
+
+    db.execute(
+        "UPDATE health_sync_config SET "
+        "is_connected = ?, auto_sync = ?, last_synced_at = ?, "
+        "last_sync_status = ?, last_steps_synced = ?, target_activity_id = ? "
+        "WHERE id = 1",
+        (new_connected, new_auto, new_synced_at, new_status, new_steps, new_act_id),
+    )
+    db.commit()
+    return get_health_sync_config(db)
+
+
+def sync_health_connect_steps(
+    db: sqlite3.Connection,
+    steps: int,
+    log_date: str | None = None,
+    notes: str | None = None,
+) -> dict[str, Any]:
+    """Sync a step count from Google Health Connect into activity_logs and update streak."""
+    try:
+        numeric_steps = int(steps)
+    except (TypeError, ValueError) as exc:
+        raise TrackerError("Step count must be a valid integer") from exc
+    if numeric_steps < 0:
+        raise TrackerError("Step count cannot be negative")
+
+    config = get_health_sync_config(db)
+    act_id = config.get("target_activity_id")
+    if not act_id:
+        steps_act = get_or_create_steps_activity(db)
+        act_id = steps_act["id"]
+        update_health_sync_config(db, target_activity_id=act_id)
+    else:
+        try:
+            get_activity(db, act_id)
+        except TrackerError:
+            steps_act = get_or_create_steps_activity(db)
+            act_id = steps_act["id"]
+            update_health_sync_config(db, target_activity_id=act_id)
+
+    target_date = (
+        parse_date(log_date).strftime(DATE_FMT)
+        if log_date
+        else date.today().strftime(DATE_FMT)
+    )
+    note_text = (
+        notes
+        if notes is not None
+        else f"Synced from Google Health Connect ({numeric_steps:,} steps)"
+    )
+
+    log_id = log_progress(
+        db,
+        activity_id=act_id,
+        log_date=target_date,
+        actual_value=float(numeric_steps),
+        notes=note_text,
+    )
+
+    now_str = datetime.now().strftime(TIMESTAMP_FMT)
+    update_health_sync_config(
+        db,
+        is_connected=True,
+        last_synced_at=now_str,
+        last_sync_status="SUCCESS",
+        last_steps_synced=numeric_steps,
+        target_activity_id=act_id,
+    )
+
+    streaks = calculate_streak(db, act_id, reference_date=target_date)
+    activity = get_activity(db, act_id)
+    is_completed = numeric_steps >= float(activity["target_value"])
+
+    return {
+        "log_id": log_id,
+        "activity_id": act_id,
+        "activity_title": activity["title"],
+        "target_value": float(activity["target_value"]),
+        "steps": numeric_steps,
+        "log_date": target_date,
+        "is_completed": is_completed,
+        "current_streak": streaks["current_streak"],
+        "longest_streak": streaks["longest_streak"],
+    }
+
+
+def sync_health_connect_range(
+    db: sqlite3.Connection,
+    daily_steps: dict[str, int],
+) -> list[dict[str, Any]]:
+    """Batch-sync multiple days of steps from Health Connect (e.g. past 7 days)."""
+    results: list[dict[str, Any]] = []
+    for day_str in sorted(daily_steps.keys()):
+        val = daily_steps[day_str]
+        res = sync_health_connect_steps(db, steps=val, log_date=day_str)
+        results.append(res)
+    return results
+
+
 __all__ = [
     "DATE_FMT",
     "VALID_CATEGORIES",
@@ -461,9 +634,14 @@ __all__ = [
     "get_activity",
     "get_activity_logs",
     "get_backup_history",
+    "get_health_sync_config",
+    "get_or_create_steps_activity",
     "get_weekly_report",
     "list_activities",
     "log_progress",
     "parse_date",
     "restore_backup",
+    "sync_health_connect_range",
+    "sync_health_connect_steps",
+    "update_health_sync_config",
 ]

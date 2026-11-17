@@ -10,8 +10,8 @@
 [![Flet 1.1.2](https://img.shields.io/badge/Flet-1.1.2-4F46E5?style=for-the-badge&logo=flutter&logoColor=white)](https://flet.dev/)
 [![SQLite 3](https://img.shields.io/badge/SQLite-3-0284C7?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![Languages](https://img.shields.io/badge/Languages-KZ%20%7C%20RU%20%7C%20EN-FF5722?style=for-the-badge)](#-key-features)
-[![Tests](https://img.shields.io/badge/Tests-34%20Passing-10B981?style=for-the-badge)](#-testing--code-quality)
-[![Coverage](https://img.shields.io/badge/Coverage-96%25-10B981?style=for-the-badge)](#-testing--code-quality)
+[![Tests](https://img.shields.io/badge/Tests-44%20Passing-10B981?style=for-the-badge)](#-testing--code-quality)
+[![Coverage](https://img.shields.io/badge/Coverage-95%25-10B981?style=for-the-badge)](#-testing--code-quality)
 
 </div>
 
@@ -28,6 +28,7 @@
 - **🌓 Athletic Studio (Light) & Obsidian Arena (Dark) Themes**: Toggle between a razor-sharp slate-white canvas and a deep obsidian night mode from the top navigation bar.
 - **🔐 Local Authentication & Persistent Sessions**: Sign up, log in with **SHA-256 salted password hashing**, or enter immediately via **Continue as Guest**.
 - **🏃 Athlete Profile & Real-Time BMI Engine**: Store full name, age, weight (`kg`), height (`cm`), personal fitness goals, and automatically compute **BMI score & health category badge** alongside lifetime streak stats.
+- **👟 Google Health Connect & Google Fit Pedometer Sync**: Native Android Health Connect integration automatically pulls daily step counts from Google Fit, Samsung Health, and wearable companion apps with zero battery drain, tactile progress bar, auto-sync on launch, and simulated demo mode.
 - **🔥 Real-Time Streak Engine**: Automatically calculates both **Current Streak** (supporting grace if today hasn't been logged yet, and broken-chain detection) and **Longest Best Streak** per habit.
 - **🎯 Interactive Daily Check-In Studio**: Features a circular completion ring, smooth slider control, instant `+25%`, `+50%`, and `100% Goal` boost buttons, plus optional workout notes.
 - **🏆 7-Day League Analytics**: Rolling 7-day consistency bars, overall weekly completion percentage, and per-habit volume breakdown.
@@ -89,11 +90,13 @@ HabitStreak/
 │   ├── db.py                    # SQLite connection, PRAGMA foreign_keys & schema DDL
 │   ├── service.py               # CRUD, streak calculation, 7-day reports, atomic JSON backup
 │   ├── auth.py                  # Salted SHA-256 auth, session table, profile & BMI calculator
+│   ├── health_connect.py        # Google Health Connect / Google Fit step sync & demo provider
 │   ├── i18n.py                  # Aligned KZ / RU / EN dictionary (100+ UI keys)
 │   └── mobile.py                # 5-tab Flet Athletic Flat 2.0 UI controller & theming
 └── tests/
     ├── test_service.py          # 25 unit tests for habits, logs, streaks, reports & backup
     ├── test_auth.py             # 4 unit tests for registration, auth, sessions, profile & BMI
+    ├── test_health_connect.py   # 10 integration tests for Google Health Connect & step meter
     └── test_mobile.py           # 5 UI controller tests for i18n, theme switch, auth & navigation
 ```
 
@@ -152,10 +155,11 @@ ruff check .
 | :--- | :---: | :---: | :--- |
 | `tracker/db.py` | 11 | **100%** | Schema initialization, FK enforcement |
 | `tracker/i18n.py` | 11 | **100%** | Complete `kz`/`ru`/`en` lookup & interpolation |
-| `tracker/service.py` | 211 | **97%** | Streak grace periods, 7-day reports, atomic JSON backup/restore |
-| `tracker/mobile.py` | 489 | **96%** | 5-tab UI, auth flow, dark/light switch, trilingual switching |
+| `tracker/service.py` | 271 | **96%** | Streak grace periods, 7-day reports, atomic JSON backup/restore |
+| `tracker/health_connect.py` | 87 | **91%** | Health Connect sync, batch range backfill, simulation |
+| `tracker/mobile.py` | 568 | **95%** | 5-tab UI, pedometer card, dark/light switch, trilingual switching |
 | `tracker/auth.py` | 144 | **94%** | Salted SHA-256 hashing, persistent session, profile updates, BMI |
-| **Total Suite** | **867** | **96%** | **34 / 34 tests passing · 0 Ruff lint errors** |
+| **Total Suite** | **1,093** | **95%** | **44 / 44 tests passing · 0 Ruff lint errors** |
 
 ---
 

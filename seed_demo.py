@@ -12,6 +12,7 @@ from tracker.service import (
     add_activity,
     export_backup,
     log_progress,
+    update_health_sync_config,
 )
 
 
@@ -70,6 +71,18 @@ def seed_database(db_path: str = DEFAULT_DB_NAME) -> None:
         # Activity 4: Completed last 3 days
         if offset <= 2:
             log_progress(db, act_ids[3], day_str, 2.8, "Daily bottle goal")
+
+    # Connect Google Health Connect to Daily 10k Steps
+    if len(act_ids) > 1:
+        update_health_sync_config(
+            db,
+            is_connected=True,
+            auto_sync=True,
+            last_synced_at=today.strftime(DATE_FMT) + " 08:30:00",
+            last_sync_status="SUCCESS",
+            last_steps_synced=11200,
+            target_activity_id=act_ids[1],
+        )
 
     export_backup(db, "backups/demo_snapshot.json")
     db.close()

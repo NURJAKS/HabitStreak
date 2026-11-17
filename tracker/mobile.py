@@ -24,6 +24,7 @@ from tracker.auth import (
     update_profile,
 )
 from tracker.db import DEFAULT_DB_NAME, connect
+from tracker.health_connect import HealthConnectManager
 from tracker.i18n import DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, tr
 from tracker.service import (
     DATE_FMT,
@@ -219,6 +220,16 @@ class ActivityTrackerUI:
         self.last_error = False
         self.current_user: dict[str, Any] | None = get_active_user(self.db)
         self.auth_mode = "login"
+        self.health_mgr = HealthConnectManager(self.db)
+        if (
+            self.current_user is not None
+            and self.health_mgr.is_connected()
+            and self.health_mgr.is_auto_sync_enabled()
+        ):
+            try:
+                self.health_mgr.sync_now()
+            except (TrackerError, sqlite3.Error, OSError):
+                self.last_message = ""
 
         self.body_container = ft.Column(
             expand=True, scroll=ft.ScrollMode.AUTO, spacing=14
@@ -818,6 +829,333 @@ class ActivityTrackerUI:
         except TrackerError as exc:
             self.notify(f"Error: {exc}", is_error=True)
 
+    def _on_health_connect_click(self, _: Any) -> None:
+        """Handle connecting Google Health Connect and performing initial sync."""
+        try:
+            self.health_mgr.connect()
+            res = self.health_mgr.sync_now()
+            self.notify(
+                tr(
+                    "health_msg_synced",
+                    self.lang,
+                    steps=f"{res['synced_steps']:,}",
+                )
+            )
+            self.render_tab(self.current_tab)
+        except (TrackerError, sqlite3.Error, OSError) as exc:
+            self.notify(f"Sync error: {exc}", is_error=True)
+
+    def _on_health_sync_click(self, _: Any) -> None:
+        """Handle manual on-demand step sync."""
+        try:
+            res = self.health_mgr.sync_now()
+            self.notify(
+                tr(
+                    "health_msg_synced",
+                    self.lang,
+                    steps=f"{res['synced_steps']:,}",
+                )
+            )
+            self.render_tab(self.current_tab)
+        except (TrackerError, sqlite3.Error, OSError) as exc:
+            self.notify(f"Sync error: {exc}", is_error=True)
+
+    def _on_health_simulate_click(self, _: Any) -> None:
+        """Simulate adding 1,000 steps for demo and verification."""
+        try:
+            self.health_mgr.simulate_walk(1000)
+            res = self.health_mgr.sync_now()
+            self.notify(
+                tr(
+                    "health_msg_synced",
+                    self.lang,
+                    steps=f"{res['synced_steps']:,}",
+                )
+            )
+            self.render_tab(self.current_tab)
+        except (TrackerError, sqlite3.Error, OSError) as exc:
+            self.notify(f"Simulation error: {exc}", is_error=True)
+
+    def _on_health_disconnect_click(self, _: Any) -> None:
+        """Handle disconnecting Health Connect."""
+        self.health_mgr.disconnect()
+        self.notify(tr("health_status_disconnected", self.lang))
+        self.render_tab(self.current_tab)
+
+    def _on_toggle_auto_sync(self, e: Any) -> None:
+        """Toggle auto-sync setting."""
+        val = bool(getattr(e.control, "value", True))
+        self.health_mgr.set_auto_sync(val)
+        self.page.update()
+
+    def _build_health_connect_card(self) -> ft.Container:
+        """Build the Google Health Connect pedometer card."""
+        t = self.theme
+        summary = self.health_mgr.get_status_summary()
+        is_conn = summary["is_connected"]
+
+        if is_conn:
+            status_chip = ft.Container(
+                bgcolor=t["mint_light"],
+                padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+                border_radius=12,
+                border=ft.Border.all(1.0, COLOR_MINT),
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.Icons.CHECK_CIRCLE, size=13, color=COLOR_MINT),
+                        ft.Text(
+                            tr("health_status_connected", self.lang),
+                            size=11,
+                            weight=ft.FontWeight.BOLD,
+                            color=COLOR_MINT,
+                        ),
+                    ],
+                    spacing=4,
+                ),
+            )
+        else:
+            status_chip = ft.Container(
+                bgcolor=t["border"],
+                padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+                border_radius=12,
+                content=ft.Text(
+                    tr("health_status_disconnected", self.lang),
+                    size=11,
+                    color=t["subtext"],
+                    weight=ft.FontWeight.BOLD,
+                ),
+            )
+
+        header_row = ft.Row(
+            [
+                ft.Container(
+                    content=ft.Icon(
+                        ft.Icons.DIRECTIONS_WALK,
+                        color=COLOR_WHITE,
+                        size=22,
+                    ),
+                    bgcolor=BRAND_PRIMARY,
+                    padding=10,
+                    border_radius=16,
+                    shadow=ft.BoxShadow(
+                        spread_radius=0,
+                        blur_radius=0,
+                        color=BRAND_PRIMARY_BEVEL,
+                        offset=ft.Offset(0, 2.5),
+                    ),
+                ),
+                ft.Column(
+                    [
+                        ft.Text(
+                            tr("health_card_title", self.lang),
+                            size=16,
+                            weight=ft.FontWeight.BOLD,
+                            color=t["text"],
+                        ),
+                        ft.Text(
+                            tr("health_card_sub", self.lang),
+                            size=11,
+                            color=t["subtext"],
+                        ),
+                    ],
+                    spacing=1,
+                    expand=True,
+                ),
+                status_chip,
+            ],
+            spacing=10,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+        )
+
+        card_controls: list[ft.Control] = [header_row]
+
+        if is_conn:
+            today_s = summary["today_steps"]
+            target_s = summary["target_steps"]
+            ratio = summary["progress_ratio"]
+            goal_hit = summary["goal_reached"]
+
+            metric_row = ft.Row(
+                [
+                    ft.Text(
+                        f"{today_s:,}",
+                        size=24,
+                        weight=ft.FontWeight.BOLD,
+                        color=COLOR_FLAME if goal_hit else BRAND_PRIMARY,
+                    ),
+                    ft.Text(
+                        f"/ {target_s:,} {tr('cat_Steps', self.lang).lower()}",
+                        size=13,
+                        color=t["subtext"],
+                        weight=ft.FontWeight.W_500,
+                    ),
+                ],
+                vertical_alignment=ft.CrossAxisAlignment.BASELINE,
+                spacing=6,
+            )
+
+            pbar = ft.ProgressBar(
+                value=ratio,
+                color=COLOR_FLAME if goal_hit else BRAND_PRIMARY,
+                bgcolor=t["grey_bar"],
+                height=9,
+                border_radius=ft.BorderRadius.all(5),
+            )
+
+            sync_time = (
+                summary["last_synced_at"][-8:]
+                if summary.get("last_synced_at")
+                else tr("health_not_synced", self.lang)
+            )
+            time_text = ft.Text(
+                tr("health_last_sync", self.lang, time=sync_time),
+                size=11,
+                color=t["subtext"],
+            )
+
+            btn_sync = _duo_button(
+                tr("health_btn_sync", self.lang),
+                on_click=self._on_health_sync_click,
+                icon=ft.Icons.SYNC,
+                bg=BRAND_PRIMARY,
+                height=40,
+            )
+            btn_demo = _duo_button(
+                tr("health_btn_simulate", self.lang),
+                on_click=self._on_health_simulate_click,
+                icon=ft.Icons.DIRECTIONS_RUN,
+                bg=COLOR_FLAME,
+                height=40,
+            )
+            action_row = ft.Row(
+                [
+                    ft.Container(content=btn_sync, expand=1),
+                    ft.Container(content=btn_demo, expand=1),
+                ],
+                spacing=8,
+            )
+
+            card_controls.extend([
+                ft.Container(height=4),
+                metric_row,
+                pbar,
+                ft.Row(
+                    [
+                        time_text,
+                        ft.Text(
+                            f"{int(ratio * 100)}%",
+                            size=12,
+                            weight=ft.FontWeight.BOLD,
+                            color=COLOR_FLAME if goal_hit else BRAND_PRIMARY,
+                        ),
+                    ],
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                ),
+                ft.Container(height=4),
+                action_row,
+            ])
+        else:
+            privacy_note = ft.Text(
+                tr("health_privacy_note", self.lang),
+                size=12,
+                color=t["subtext"],
+            )
+            btn_connect = _duo_button(
+                tr("health_btn_connect", self.lang),
+                on_click=self._on_health_connect_click,
+                icon=ft.Icons.LINK,
+                bg=BRAND_PRIMARY,
+                height=42,
+            )
+            btn_demo = _duo_button(
+                tr("health_btn_simulate", self.lang),
+                on_click=self._on_health_simulate_click,
+                icon=ft.Icons.DIRECTIONS_RUN,
+                bg=COLOR_FLAME,
+                height=42,
+            )
+            action_row = ft.Row(
+                [
+                    ft.Container(content=btn_connect, expand=3),
+                    ft.Container(content=btn_demo, expand=2),
+                ],
+                spacing=8,
+            )
+            card_controls.extend([
+                ft.Container(height=4),
+                privacy_note,
+                ft.Container(height=4),
+                action_row,
+            ])
+
+        return self._card(
+            ft.Column(card_controls, spacing=8),
+            padding=16,
+        )
+
+    def _build_profile_health_card(self) -> ft.Container:
+        """Render the Health Connect settings card in the Profile tab."""
+        t = self.theme
+        summary = self.health_mgr.get_status_summary()
+        is_conn = summary["is_connected"]
+
+        header = ft.Row(
+            [
+                ft.Icon(ft.Icons.HEALTH_AND_SAFETY, color=COLOR_SKY, size=24),
+                ft.Text(
+                    tr("health_card_title", self.lang),
+                    size=16,
+                    weight=ft.FontWeight.BOLD,
+                    color=t["text"],
+                ),
+            ],
+            spacing=8,
+        )
+
+        auto_sync_switch = ft.Switch(
+            label=tr("health_auto_sync_toggle", self.lang),
+            value=self.health_mgr.is_auto_sync_enabled(),
+            on_change=self._on_toggle_auto_sync,
+            active_color=BRAND_PRIMARY,
+        )
+
+        if is_conn:
+            btn_action = _duo_button(
+                tr("health_btn_disconnect", self.lang),
+                on_click=self._on_health_disconnect_click,
+                icon=ft.Icons.LINK_OFF,
+                bg=COLOR_CORAL,
+                height=42,
+            )
+        else:
+            btn_action = _duo_button(
+                tr("health_btn_connect", self.lang),
+                on_click=self._on_health_connect_click,
+                icon=ft.Icons.LINK,
+                bg=BRAND_PRIMARY,
+                height=42,
+            )
+
+        note = ft.Text(
+            tr("health_privacy_note", self.lang),
+            size=11,
+            color=t["subtext"],
+            italic=True,
+        )
+
+        return self._card(
+            ft.Column(
+                [
+                    header,
+                    auto_sync_switch,
+                    btn_action,
+                    note,
+                ],
+                spacing=10,
+            ),
+            padding=18,
+        )
+
     def _build_habits_tab(self) -> list[ft.Control]:
         """Build the tactile Duolingo Habits & Streaks home screen."""
         t = self.theme
@@ -911,10 +1249,12 @@ class ActivityTrackerUI:
         )
 
         kpi_bar = ft.Row([streak_kpi_card, done_kpi_card], spacing=10)
+        health_card = self._build_health_connect_card()
 
         if not activities:
             return [
                 kpi_bar,
+                health_card,
                 self._empty_state(
                     ft.Icons.ROCKET_LAUNCH,
                     tr("empty_habits_title", self.lang),
@@ -923,6 +1263,7 @@ class ActivityTrackerUI:
             ]
         return [
             kpi_bar,
+            health_card,
             ft.Text(
                 tr("todays_habits_title", self.lang),
                 size=18,
@@ -1951,10 +2292,13 @@ class ActivityTrackerUI:
             height=46,
         )
 
+        health_card = self._build_profile_health_card()
+
         return [
             banner_card,
             kpi_row,
             metrics_card,
+            health_card,
             logout_btn,
         ]
 

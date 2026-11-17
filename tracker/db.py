@@ -54,6 +54,16 @@ CREATE TABLE IF NOT EXISTS session (
     active_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     updated_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS health_sync_config (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    is_connected INTEGER NOT NULL DEFAULT 0,
+    auto_sync INTEGER NOT NULL DEFAULT 1,
+    last_synced_at TEXT DEFAULT NULL,
+    last_sync_status TEXT NOT NULL DEFAULT 'IDLE',
+    last_steps_synced INTEGER NOT NULL DEFAULT 0,
+    target_activity_id INTEGER REFERENCES activities(id) ON DELETE SET NULL
+);
 """
 
 
