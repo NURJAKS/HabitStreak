@@ -125,15 +125,47 @@ Populate local SQLite (`activity_tracker.sqlite`) with 4 athletic habits (`Morni
 python seed_demo.py
 ```
 
-### 3. Launch HabitStreak
+### 3. Launch as Web App or Desktop Mobile Preview
+
+#### 🌐 Option A — Web Application (Browser)
+Run HabitStreak directly in your browser (or open it from your phone's browser on the same Wi-Fi network):
 
 ```bash
-# Desktop / mobile preview window
-flet run main.py
-
-# Or launch directly in your browser
+# Launch locally in your default browser
 flet run --web main.py
+
+# Or bind to a specific port / LAN IP so your phone can open http://<YOUR_PC_IP>:8550
+flet run --web --host 0.0.0.0 --port 8550 main.py
 ```
+
+#### 🖥️ Option B — Desktop Mobile Viewport Preview
+```bash
+flet run main.py
+```
+
+---
+
+## 👟 Testing & Using the Pedometer (Google Health Connect)
+
+Follow these steps in either the **Web App**, **Desktop Preview**, or **Android APK** to verify step counting and automatic streak updates:
+
+1. **Enter the App**: Log in, register an account, or tap **Continue as Guest** (if you ran `python seed_demo.py`, you can log in with `alex` / `streak2026`).
+2. **Open the Habits Tab (`🔥 Habits`)**: Locate the **Google Health Connect** card at the top of the screen below the KPI counters.
+3. **Connect & Initial Sync**:
+   - Tap **`CONNECT GOOGLE HEALTH`** to authorize step syncing and link/create your **`Daily Steps`** (`10,000 steps`) habit.
+   - The card immediately switches to **`Connected & Tracking`**, shows your synced daily step count (starting at `7,450 / 10,000 steps` in demo/simulation mode), progress bar, percentage, and last sync timestamp.
+4. **Test Live Step Increment & Automatic Streak Completion**:
+   - Tap **`+1,000 Steps Demo`** repeatedly (`7,450` → `8,450` → `9,450` → `10,450`).
+   - Once steps reach **`10,000+` (`100%`)**, the progress bar turns **Radiant Flame (`#FF5722`)**, the **`Daily Steps`** habit card marks itself completed for today, and the **Day Streak** counter increments automatically.
+   - Tap **`SYNC STEPS`** at any time to re-sync today's steps and backfill the last 7 days into SQLite.
+5. **Verify 7-Day Analytics & Check-In**:
+   - Open the **`📊 Weekly`** tab to see synced steps reflected in your 7-Day Consistency Chain and total weekly step volume.
+   - Open the **`✅ Check-In`** tab and select `Daily Steps` to confirm the ring progress matches your synced step total.
+6. **Configure Auto-Sync & Disconnect**:
+   - Open the **`👤 Profile`** tab → **Google Health Connect** card.
+   - Toggle **`Auto-sync steps on launch`** on/off, or tap **`DISCONNECT`** to revoke syncing.
+
+> **Note on Native Android Device Sync:** The APK manifest includes `android.permission.health.READ_STEPS` and `android.permission.ACTIVITY_RECOGNITION`. Currently, `tracker/health_connect.py` ships with an in-app step simulator so Web, Desktop, and APK testing work immediately without wearables; reading real hardware/Health Connect counts on a physical Android phone requires adding a custom Flutter `health` Flet extension bridge.
 
 ---
 
@@ -144,7 +176,7 @@ Install development dependencies (`pytest`, `pytest-cov`, `ruff`) and run the fu
 ```bash
 pip install -r requirements-dev.txt
 
-# Run all 34 unit & UI tests with line-by-line coverage report
+# Run all 44 unit & UI tests with line-by-line coverage report
 pytest --cov=tracker --cov-report=term-missing
 
 # Verify clean code formatting & static lint rules
@@ -168,7 +200,7 @@ ruff check .
 You can compile a standalone, offline Android `.apk` package directly from source without Google Play Store:
 
 ```bash
-flet build apk --project "HabitStreak" --description "Physical Activity Tracker with Habit Streaks"
+flet build apk --project "HabitStreak" --description "Physical Activity Tracker with Habit Streaks" --android-permissions android.permission.health.READ_STEPS=True android.permission.ACTIVITY_RECOGNITION=True
 ```
 
 The signed release APK will be output to `build/apk/HabitStreak.apk` (or `build/apk/app-release.apk`).
