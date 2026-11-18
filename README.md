@@ -10,8 +10,8 @@
 [![Flet 1.1.2](https://img.shields.io/badge/Flet-1.1.2-4F46E5?style=for-the-badge&logo=flutter&logoColor=white)](https://flet.dev/)
 [![SQLite 3](https://img.shields.io/badge/SQLite-3-0284C7?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 [![Languages](https://img.shields.io/badge/Languages-KZ%20%7C%20RU%20%7C%20EN-FF5722?style=for-the-badge)](#-key-features)
-[![Tests](https://img.shields.io/badge/Tests-44%20Passing-10B981?style=for-the-badge)](#-testing--code-quality)
-[![Coverage](https://img.shields.io/badge/Coverage-95%25-10B981?style=for-the-badge)](#-testing--code-quality)
+[![Tests](https://img.shields.io/badge/Tests-47%20Passing-10B981?style=for-the-badge)](#-testing--code-quality)
+[![Coverage](https://img.shields.io/badge/Coverage-92%25-10B981?style=for-the-badge)](#-testing--code-quality)
 
 </div>
 
@@ -28,7 +28,7 @@
 - **🌓 Athletic Studio (Light) & Obsidian Arena (Dark) Themes**: Toggle between a razor-sharp slate-white canvas and a deep obsidian night mode from the top navigation bar.
 - **🔐 Local Authentication & Persistent Sessions**: Sign up, log in with **SHA-256 salted password hashing**, or enter immediately via **Continue as Guest**.
 - **🏃 Athlete Profile & Real-Time BMI Engine**: Store full name, age, weight (`kg`), height (`cm`), personal fitness goals, and automatically compute **BMI score & health category badge** alongside lifetime streak stats.
-- **👟 Google Health Connect & Google Fit Pedometer Sync**: Native Android Health Connect integration automatically pulls daily step counts from Google Fit, Samsung Health, and wearable companion apps with zero battery drain, tactile progress bar, auto-sync on launch, and simulated demo mode.
+- **👟 Hybrid Google Health Connect & Hardware Pedometer**: Built-in custom Flet Flutter extension (`flet_health_steps`) combining Android **Google Health Connect** (`health`) for 7-day history + Google Fit / smartwatch sync with a **Hardware Step Sensor** (`pedometer` / `TYPE_STEP_COUNTER`) fallback that counts steps immediately even without Google Fit configured (plus an interactive demo simulator on Web/Desktop).
 - **🔥 Real-Time Streak Engine**: Automatically calculates both **Current Streak** (supporting grace if today hasn't been logged yet, and broken-chain detection) and **Longest Best Streak** per habit.
 - **🎯 Interactive Daily Check-In Studio**: Features a circular completion ring, smooth slider control, instant `+25%`, `+50%`, and `100% Goal` boost buttons, plus optional workout notes.
 - **🏆 7-Day League Analytics**: Rolling 7-day consistency bars, overall weekly completion percentage, and per-habit volume breakdown.
@@ -77,8 +77,11 @@ The codebase follows a **clean 5-tier modular architecture** that decouples UI r
 HabitStreak/
 ├── main.py                      # Root Flet entrypoint (flet run / flet build apk)
 ├── seed_demo.py                 # Realistic 10-day sample athlete dataset generator
+├── pyproject.toml               # Flet app & Android Health Connect manifest/SDK config
 ├── requirements.txt             # Runtime dependency (flet==1.1.2)
 ├── requirements-dev.txt         # Test & lint dependencies (pytest, pytest-cov, ruff)
+├── packages/
+│   └── flet_health_steps/       # Custom Flet Flutter extension (health + pedometer + permission_handler)
 ├── assets/
 │   ├── icon.png                 # App launcher icon & mascot badge
 │   └── favicon.png
@@ -90,13 +93,13 @@ HabitStreak/
 │   ├── db.py                    # SQLite connection, PRAGMA foreign_keys & schema DDL
 │   ├── service.py               # CRUD, streak calculation, 7-day reports, atomic JSON backup
 │   ├── auth.py                  # Salted SHA-256 auth, session table, profile & BMI calculator
-│   ├── health_connect.py        # Google Health Connect / Google Fit step sync & demo provider
+│   ├── health_connect.py        # Hybrid Health Connect + hardware sensor sync & demo provider
 │   ├── i18n.py                  # Aligned KZ / RU / EN dictionary (100+ UI keys)
 │   └── mobile.py                # 5-tab Flet Athletic Flat 2.0 UI controller & theming
 └── tests/
     ├── test_service.py          # 25 unit tests for habits, logs, streaks, reports & backup
     ├── test_auth.py             # 4 unit tests for registration, auth, sessions, profile & BMI
-    ├── test_health_connect.py   # 10 integration tests for Google Health Connect & step meter
+    ├── test_health_connect.py   # 13 integration tests for hybrid Health Connect & sensor math
     └── test_mobile.py           # 5 UI controller tests for i18n, theme switch, auth & navigation
 ```
 
@@ -115,6 +118,7 @@ source .venv/bin/activate        # Linux / macOS
 # .venv\Scripts\activate         # Windows
 
 pip install -r requirements.txt
+pip install --no-deps -e packages/flet_health_steps
 ```
 
 ### 2. *(Optional)* Seed Realistic Demo Data
@@ -165,7 +169,9 @@ Follow these steps in either the **Web App**, **Desktop Preview**, or **Android 
    - Open the **`👤 Profile`** tab → **Google Health Connect** card.
    - Toggle **`Auto-sync steps on launch`** on/off, or tap **`DISCONNECT`** to revoke syncing.
 
-> **Note on Native Android Device Sync:** The APK manifest includes `android.permission.health.READ_STEPS` and `android.permission.ACTIVITY_RECOGNITION`. Currently, `tracker/health_connect.py` ships with an in-app step simulator so Web, Desktop, and APK testing work immediately without wearables; reading real hardware/Health Connect counts on a physical Android phone requires adding a custom Flutter `health` Flet extension bridge.
+> **How Hybrid Mode Works on Android vs. Web/Desktop:**
+> - **On a physical Android phone (`HabitStreak.apk`):** Tapping **`CONNECT GOOGLE HEALTH`** requests Android's `ACTIVITY_RECOGNITION` and Health Connect `READ_STEPS` permissions. HabitStreak reads your daily & 7-day step counts from **Google Health Connect** (Google Fit, Samsung Health, smartwatches) when available, and simultaneously listens to the phone's built-in **hardware pedometer (`TYPE_STEP_COUNTER`)** so steps still count live even if Health Connect is not configured (automatically handling phone reboots and midnight rollovers in SQLite).
+> - **On Web / Desktop Preview:** Uses the built-in step simulator (`+1,000 Steps Demo`) so you can test the progress bar, streak completion, and weekly analytics without a physical step sensor.
 
 ---
 
@@ -176,7 +182,7 @@ Install development dependencies (`pytest`, `pytest-cov`, `ruff`) and run the fu
 ```bash
 pip install -r requirements-dev.txt
 
-# Run all 44 unit & UI tests with line-by-line coverage report
+# Run all 47 unit & UI tests with line-by-line coverage report
 pytest --cov=tracker --cov-report=term-missing
 
 # Verify clean code formatting & static lint rules
@@ -187,20 +193,20 @@ ruff check .
 | :--- | :---: | :---: | :--- |
 | `tracker/db.py` | 11 | **100%** | Schema initialization, FK enforcement |
 | `tracker/i18n.py` | 11 | **100%** | Complete `kz`/`ru`/`en` lookup & interpolation |
-| `tracker/service.py` | 271 | **96%** | Streak grace periods, 7-day reports, atomic JSON backup/restore |
-| `tracker/health_connect.py` | 87 | **91%** | Health Connect sync, batch range backfill, simulation |
-| `tracker/mobile.py` | 568 | **95%** | 5-tab UI, pedometer card, dark/light switch, trilingual switching |
+| `tracker/service.py` | 297 | **96%** | Streak grace periods, 7-day reports, sensor deltas, atomic backup |
+| `tracker/health_connect.py` | 181 | **89%** | Hybrid Health Connect + hardware pedometer sync & simulation |
+| `tracker/mobile.py` | 625 | **91%** | 5-tab UI, pedometer card, dark/light switch, trilingual switching |
 | `tracker/auth.py` | 144 | **94%** | Salted SHA-256 hashing, persistent session, profile updates, BMI |
-| **Total Suite** | **1,093** | **95%** | **44 / 44 tests passing · 0 Ruff lint errors** |
+| **Total Suite** | **1,270** | **92%** | **47 / 47 tests passing · 0 Ruff lint errors** |
 
 ---
 
 ## 📱 Building & Installing the Android APK Locally
 
-You can compile a standalone, offline Android `.apk` package directly from source without Google Play Store:
+You can compile a standalone, offline Android `.apk` package directly from source (with `packages/flet_health_steps` and Health Connect permissions declared in [`pyproject.toml`](pyproject.toml)):
 
 ```bash
-flet build apk --project "HabitStreak" --description "Physical Activity Tracker with Habit Streaks" --android-permissions android.permission.health.READ_STEPS=True android.permission.ACTIVITY_RECOGNITION=True
+flet build apk --project "HabitStreak" --description "Physical Activity Tracker with Habit Streaks"
 ```
 
 The signed release APK will be output to `build/apk/HabitStreak.apk` (or `build/apk/app-release.apk`).

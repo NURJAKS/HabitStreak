@@ -64,6 +64,14 @@ CREATE TABLE IF NOT EXISTS health_sync_config (
     last_steps_synced INTEGER NOT NULL DEFAULT 0,
     target_activity_id INTEGER REFERENCES activities(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS pedometer_sensor_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    sensor_date TEXT NOT NULL,
+    last_raw_steps INTEGER NOT NULL DEFAULT 0,
+    today_sensor_steps INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+);
 """
 
 

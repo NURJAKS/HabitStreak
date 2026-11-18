@@ -14,6 +14,11 @@ from typing import Any
 
 import flet as ft
 
+try:
+    from flet_health_steps import FletHealthSteps
+except ImportError:  # pragma: no cover - optional when running without extension installed
+    FletHealthSteps = None  # type: ignore[assignment,misc]
+
 from tracker.auth import (
     calculate_bmi,
     ensure_guest_user,
@@ -220,16 +225,32 @@ class ActivityTrackerUI:
         self.last_error = False
         self.current_user: dict[str, Any] | None = get_active_user(self.db)
         self.auth_mode = "login"
-        self.health_mgr = HealthConnectManager(self.db)
+        self.native_health_service: Any = None
+        if self._is_mobile_client() and FletHealthSteps is not None:
+            try:
+                self.native_health_service = FletHealthSteps(
+                    on_sensor_step=self._on_native_sensor_step,
+                    on_sensor_error=self._on_native_sensor_error,
+                )
+            except RuntimeError:
+                self.native_health_service = None
+
+        self.health_mgr = HealthConnectManager(
+            self.db,
+            native_service=self.native_health_service,
+        )
         if (
             self.current_user is not None
             and self.health_mgr.is_connected()
             and self.health_mgr.is_auto_sync_enabled()
         ):
-            try:
-                self.health_mgr.sync_now()
-            except (TrackerError, sqlite3.Error, OSError):
-                self.last_message = ""
+            if self.health_mgr.is_native:
+                self.page.run_task(self._native_sync_task)
+            else:
+                try:
+                    self.health_mgr.sync_now()
+                except (TrackerError, sqlite3.Error, OSError):
+                    self.last_message = ""
 
         self.body_container = ft.Column(
             expand=True, scroll=ft.ScrollMode.AUTO, spacing=14
@@ -829,8 +850,70 @@ class ActivityTrackerUI:
         except TrackerError as exc:
             self.notify(f"Error: {exc}", is_error=True)
 
+    def _is_mobile_client(self) -> bool:
+        """Return True when running natively on Android or iOS (non-web)."""
+        is_web = getattr(self.page, "web", False) is True
+        platform_val = getattr(self.page, "platform", None)
+        return not is_web and platform_val in (
+            ft.PagePlatform.ANDROID,
+            ft.PagePlatform.IOS,
+        )
+
+    def _on_native_sensor_step(self, e: Any) -> None:
+        """Handle live hardware step sensor reading from Android/iOS."""
+        raw = getattr(e, "raw_steps", None)
+        if raw is None:
+            return
+        try:
+            res = self.health_mgr.handle_sensor_step_event(int(raw))
+            if (
+                res.get("updated")
+                and self.current_user is not None
+                and self.current_tab == 0
+            ):
+                self.render_tab(0)
+        except (TrackerError, sqlite3.Error, ValueError, TypeError):
+            self.last_message = ""
+
+    def _on_native_sensor_error(self, e: Any) -> None:
+        """Handle non-fatal hardware sensor errors gracefully."""
+        _ = getattr(e, "message", "")
+
+    async def _native_connect_task(self) -> None:
+        """Async hybrid connect: permissions + Health Connect + hardware pedometer."""
+        try:
+            res = await self.health_mgr.connect_native_async()
+            self.notify(
+                tr(
+                    "health_msg_synced",
+                    self.lang,
+                    steps=f"{res['synced_steps']:,}",
+                )
+            )
+            self.render_tab(self.current_tab)
+        except (TrackerError, sqlite3.Error, OSError, RuntimeError, TimeoutError) as exc:
+            self.notify(f"Sync error: {exc}", is_error=True)
+
+    async def _native_sync_task(self) -> None:
+        """Async hybrid sync: Health Connect primary + hardware pedometer fallback."""
+        try:
+            res = await self.health_mgr.sync_hybrid_async()
+            self.notify(
+                tr(
+                    "health_msg_synced",
+                    self.lang,
+                    steps=f"{res['synced_steps']:,}",
+                )
+            )
+            self.render_tab(self.current_tab)
+        except (TrackerError, sqlite3.Error, OSError, RuntimeError, TimeoutError) as exc:
+            self.notify(f"Sync error: {exc}", is_error=True)
+
     def _on_health_connect_click(self, _: Any) -> None:
         """Handle connecting Google Health Connect and performing initial sync."""
+        if self.health_mgr.is_native:
+            self.page.run_task(self._native_connect_task)
+            return
         try:
             self.health_mgr.connect()
             res = self.health_mgr.sync_now()
@@ -847,6 +930,9 @@ class ActivityTrackerUI:
 
     def _on_health_sync_click(self, _: Any) -> None:
         """Handle manual on-demand step sync."""
+        if self.health_mgr.is_native:
+            self.page.run_task(self._native_sync_task)
+            return
         try:
             res = self.health_mgr.sync_now()
             self.notify(
@@ -1020,20 +1106,23 @@ class ActivityTrackerUI:
                 bg=BRAND_PRIMARY,
                 height=40,
             )
-            btn_demo = _duo_button(
-                tr("health_btn_simulate", self.lang),
-                on_click=self._on_health_simulate_click,
-                icon=ft.Icons.DIRECTIONS_RUN,
-                bg=COLOR_FLAME,
-                height=40,
-            )
-            action_row = ft.Row(
-                [
-                    ft.Container(content=btn_sync, expand=1),
-                    ft.Container(content=btn_demo, expand=1),
-                ],
-                spacing=8,
-            )
+            if summary["is_native"]:
+                action_row: ft.Control = btn_sync
+            else:
+                btn_demo = _duo_button(
+                    tr("health_btn_simulate", self.lang),
+                    on_click=self._on_health_simulate_click,
+                    icon=ft.Icons.DIRECTIONS_RUN,
+                    bg=COLOR_FLAME,
+                    height=40,
+                )
+                action_row = ft.Row(
+                    [
+                        ft.Container(content=btn_sync, expand=1),
+                        ft.Container(content=btn_demo, expand=1),
+                    ],
+                    spacing=8,
+                )
 
             card_controls.extend([
                 ft.Container(height=4),
@@ -1067,20 +1156,23 @@ class ActivityTrackerUI:
                 bg=BRAND_PRIMARY,
                 height=42,
             )
-            btn_demo = _duo_button(
-                tr("health_btn_simulate", self.lang),
-                on_click=self._on_health_simulate_click,
-                icon=ft.Icons.DIRECTIONS_RUN,
-                bg=COLOR_FLAME,
-                height=42,
-            )
-            action_row = ft.Row(
-                [
-                    ft.Container(content=btn_connect, expand=3),
-                    ft.Container(content=btn_demo, expand=2),
-                ],
-                spacing=8,
-            )
+            if summary["is_native"]:
+                action_row = btn_connect
+            else:
+                btn_demo = _duo_button(
+                    tr("health_btn_simulate", self.lang),
+                    on_click=self._on_health_simulate_click,
+                    icon=ft.Icons.DIRECTIONS_RUN,
+                    bg=COLOR_FLAME,
+                    height=42,
+                )
+                action_row = ft.Row(
+                    [
+                        ft.Container(content=btn_connect, expand=3),
+                        ft.Container(content=btn_demo, expand=2),
+                    ],
+                    spacing=8,
+                )
             card_controls.extend([
                 ft.Container(height=4),
                 privacy_note,
@@ -2364,6 +2456,21 @@ def main(page: ft.Page) -> None:
         controller.render_tab(tab_idx)
 
     page.on_route_change = _on_route
+
+    def _on_lifecycle(e: ft.AppLifecycleStateChangeEvent) -> None:
+        if (
+            e.state == ft.AppLifecycleState.RESUME
+            and controller.current_user is not None
+            and controller.health_mgr.is_connected()
+            and controller.health_mgr.is_auto_sync_enabled()
+        ):
+            if controller.health_mgr.is_native:
+                page.run_task(controller._native_sync_task)
+            else:
+                controller.health_mgr.sync_now()
+                controller.render_tab(controller.current_tab)
+
+    page.on_app_lifecycle_state_change = _on_lifecycle
 
     page.navigation_bar = ft.NavigationBar(
         selected_index=initial_tab,

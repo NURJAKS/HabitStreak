@@ -1,0 +1,37 @@
+[project]
+name = "habitstreak"
+version = "1.0.0"
+description = "Physical Activity Tracker with Habit Streaks"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flet==1.1.2",
+    "flet-health-steps",
+]
+
+[tool.flet.dev_packages]
+flet-health-steps = "packages/flet_health_steps"
+
+[tool.flet.android]
+min_sdk_version = 26
+
+[tool.flet.android.permission]
+"android.permission.INTERNET" = true
+"android.permission.ACTIVITY_RECOGNITION" = true
+"android.permission.health.READ_STEPS" = true
+
+[tool.flet.android.queries]
+packages = [
+    "com.google.android.apps.healthdata",
+    "com.google.android.apps.fitness",
+]
+
+[[tool.flet.android.queries.intent]]
+action = "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE"
+
+[[tool.flet.android.activity.intent_filter]]
+actions = ["androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE"]
+
+[[tool.flet.android.activity.intent_filter]]
+actions = ["android.intent.action.VIEW_PERMISSION_USAGE"]
+categories = ["android.intent.category.HEALTH_PERMISSIONS"]

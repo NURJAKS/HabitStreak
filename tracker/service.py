@@ -622,6 +622,81 @@ def sync_health_connect_range(
     return results
 
 
+def record_hardware_sensor_steps(
+    db: sqlite3.Connection,
+    raw_steps: int,
+    log_date: str | None = None,
+) -> dict[str, Any]:
+    """Convert cumulative boot-based step sensor reading into today's step total."""
+    try:
+        numeric_raw = int(raw_steps)
+    except (TypeError, ValueError) as exc:
+        raise TrackerError("Raw step count must be a valid integer") from exc
+    if numeric_raw < 0:
+        raise TrackerError("Raw step count cannot be negative")
+
+    target_date = (
+        parse_date(log_date).strftime(DATE_FMT)
+        if log_date
+        else date.today().strftime(DATE_FMT)
+    )
+    now_str = datetime.now().strftime(TIMESTAMP_FMT)
+    row = db.execute(
+        "SELECT sensor_date, last_raw_steps, today_sensor_steps "
+        "FROM pedometer_sensor_state WHERE id = 1"
+    ).fetchone()
+
+    if row is None or row["sensor_date"] != target_date:
+        today_steps = 0
+        db.execute(
+            "INSERT INTO pedometer_sensor_state "
+            "(id, sensor_date, last_raw_steps, today_sensor_steps, updated_at) "
+            "VALUES (1, ?, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET "
+            "sensor_date = excluded.sensor_date, "
+            "last_raw_steps = excluded.last_raw_steps, "
+            "today_sensor_steps = excluded.today_sensor_steps, "
+            "updated_at = excluded.updated_at",
+            (target_date, numeric_raw, today_steps, now_str),
+        )
+    else:
+        prev_raw = int(row["last_raw_steps"])
+        prev_today = int(row["today_sensor_steps"])
+        delta = (numeric_raw - prev_raw) if numeric_raw >= prev_raw else numeric_raw
+        today_steps = prev_today + delta
+        db.execute(
+            "UPDATE pedometer_sensor_state SET "
+            "last_raw_steps = ?, today_sensor_steps = ?, updated_at = ? "
+            "WHERE id = 1",
+            (numeric_raw, today_steps, now_str),
+        )
+    db.commit()
+
+    return {
+        "sensor_date": target_date,
+        "last_raw_steps": numeric_raw,
+        "today_sensor_steps": today_steps,
+    }
+
+
+def get_hardware_sensor_steps(
+    db: sqlite3.Connection,
+    log_date: str | None = None,
+) -> int:
+    """Return today's accumulated hardware sensor step count (0 if none for today)."""
+    target_date = (
+        parse_date(log_date).strftime(DATE_FMT)
+        if log_date
+        else date.today().strftime(DATE_FMT)
+    )
+    row = db.execute(
+        "SELECT sensor_date, today_sensor_steps FROM pedometer_sensor_state WHERE id = 1"
+    ).fetchone()
+    if row and row["sensor_date"] == target_date:
+        return int(row["today_sensor_steps"])
+    return 0
+
+
 __all__ = [
     "DATE_FMT",
     "VALID_CATEGORIES",
@@ -634,12 +709,14 @@ __all__ = [
     "get_activity",
     "get_activity_logs",
     "get_backup_history",
+    "get_hardware_sensor_steps",
     "get_health_sync_config",
     "get_or_create_steps_activity",
     "get_weekly_report",
     "list_activities",
     "log_progress",
     "parse_date",
+    "record_hardware_sensor_steps",
     "restore_backup",
     "sync_health_connect_range",
     "sync_health_connect_steps",

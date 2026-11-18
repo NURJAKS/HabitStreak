@@ -1,0 +1,35 @@
+[project]
+name = "flet-health-steps"
+version = "0.1.0"
+description = "FletHealthSteps control for Flet"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Flet contributors", email = "you@example.com" }
+]
+dependencies = [
+    "flet>=1.1.2",
+]
+
+[dependency-groups]
+dev = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocstrings[python]"
+]
+
+[project.urls]
+Homepage = "https://mydomain.dev"
+Documentation = "https://github.com/MyGithubAccount/flet-health-steps"
+Repository = "https://github.com/MyGithubAccount/flet-health-steps"
+Issues = "https://github.com/MyGithubAccount/flet-health-steps/issues"
+
+[tool.setuptools.package-data]
+"flutter.flet_health_steps" = ["**/*"]
+
+[tool.setuptools]
+license-files = []
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

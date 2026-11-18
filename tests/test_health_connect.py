@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import date, timedelta
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import flet as ft
 import pytest
@@ -16,9 +17,11 @@ from tracker.service import (
     DATE_FMT,
     TrackerError,
     add_activity,
+    get_hardware_sensor_steps,
     get_health_sync_config,
     get_or_create_steps_activity,
     get_weekly_report,
+    record_hardware_sensor_steps,
     sync_health_connect_range,
     sync_health_connect_steps,
     update_health_sync_config,
@@ -250,3 +253,124 @@ def test_health_connect_i18n():
             val = tr(k, lang, time="12:00", steps="10,000")
             assert val != k, f"Missing translation for key {k} in {lang}"
             assert len(val) > 0
+
+
+def test_hardware_sensor_delta_and_reboot(memory_db):
+    """Verify boot-cumulative sensor conversion handles progression, reboots, and day rollover."""
+    with pytest.raises(TrackerError, match="Raw step count cannot be negative"):
+        record_hardware_sensor_steps(memory_db, -10)
+    with pytest.raises(TrackerError, match="Raw step count must be a valid integer"):
+        record_hardware_sensor_steps(memory_db, "bad")  # type: ignore[arg-type]
+
+    today = date.today().strftime(DATE_FMT)
+    yesterday = (date.today() - timedelta(days=1)).strftime(DATE_FMT)
+
+    # First reading establishes baseline
+    r1 = record_hardware_sensor_steps(memory_db, 5000, log_date=yesterday)
+    assert r1["today_sensor_steps"] == 0
+    r2 = record_hardware_sensor_steps(memory_db, 5300, log_date=yesterday)
+    assert r2["today_sensor_steps"] == 300
+
+    # Day rollover starts fresh today
+    r3 = record_hardware_sensor_steps(memory_db, 5300, log_date=today)
+    assert r3["today_sensor_steps"] == 0
+
+    # Normal walk progression (+450 steps)
+    r4 = record_hardware_sensor_steps(memory_db, 5750, log_date=today)
+    assert r4["today_sensor_steps"] == 450
+
+    # Device reboot (raw resets below 5750 to 200) adds 200 -> 650
+    r5 = record_hardware_sensor_steps(memory_db, 200, log_date=today)
+    assert r5["today_sensor_steps"] == 650
+    assert get_hardware_sensor_steps(memory_db, today) == 650
+
+
+def test_hybrid_sync_health_connect_primary_and_sensor_fallback(memory_db):
+    """Verify hybrid async sync uses Health Connect when available and falls back to sensor."""
+    today = date.today().strftime(DATE_FMT)
+    yesterday = (date.today() - timedelta(days=1)).strftime(DATE_FMT)
+
+    mock_native = MagicMock()
+    mock_native.request_permissions = AsyncMock(
+        return_value={
+            "activity_recognition": True,
+            "health_connect": True,
+            "pedometer_active": True,
+        }
+    )
+    mock_native.check_health_connect_status = AsyncMock(
+        return_value={"available": True, "status": "sdkAvailable"}
+    )
+    mock_native.get_steps_range = AsyncMock(
+        return_value={"ok": True, "steps": {yesterday: 10200, today: 8400}, "error": None}
+    )
+    mock_native.get_latest_raw_steps = AsyncMock(
+        return_value={"raw_steps": 1000, "active": True}
+    )
+    mock_native.start_pedometer = AsyncMock(return_value={"active": True})
+
+    mgr = HealthConnectManager(memory_db)
+    mgr.set_native_service(mock_native)
+    assert mgr.is_native
+
+    # Case 1: Health Connect succeeds and backfills yesterday + today
+    res = asyncio.run(mgr.connect_native_async())
+    assert res["synced_steps"] == 8400
+    assert res["source"] == "Google Health Connect"
+    assert res["backfilled_days"] == 1
+    assert mgr.fetch_today_steps() == 8400
+
+    # Case 2: Live hardware pedometer walks +2000 steps (exceeds HC's 8400 -> 10400)
+    # First reading set baseline at 1000; next reading 3000 -> +2000 sensor steps
+    # Wait: since existing logged is 8400 and sensor_today is 2000, max is 8400 until sensor > 8400.
+    # Simulate Health Connect unavailable on a new DB where only hardware sensor counts:
+    db2 = connect(":memory:")
+    mock_fallback = MagicMock()
+    mock_fallback.request_permissions = AsyncMock(
+        return_value={
+            "activity_recognition": True,
+            "health_connect": False,
+            "pedometer_active": True,
+        }
+    )
+    mock_fallback.check_health_connect_status = AsyncMock(
+        return_value={"available": False, "status": "sdkUnavailable"}
+    )
+    mock_fallback.get_steps_range = AsyncMock(
+        return_value={"ok": False, "steps": {}, "error": "health_connect_unavailable"}
+    )
+    mock_fallback.get_latest_raw_steps = AsyncMock(
+        return_value={"raw_steps": 4000, "active": True}
+    )
+    mock_fallback.start_pedometer = AsyncMock(return_value={"active": True})
+
+    mgr2 = HealthConnectManager(db2, native_service=mock_fallback)
+    asyncio.run(mgr2.connect_native_async())
+    # Hardware sensor emits +1250 steps
+    live = mgr2.handle_sensor_step_event(5250)
+    assert live["updated"]
+    assert live["sensor_steps"] == 1250
+    assert mgr2.fetch_today_steps() == 1250
+
+    mock_fallback.get_latest_raw_steps = AsyncMock(
+        return_value={"raw_steps": 5250, "active": True}
+    )
+    sync_fb = asyncio.run(mgr2.sync_hybrid_async())
+    assert sync_fb["source"] == "Hardware Pedometer"
+    assert sync_fb["synced_steps"] == 1250
+
+
+def test_ui_native_sensor_event_updates_tab(memory_db):
+    """Verify ActivityTrackerUI handles SensorStepEvent cleanly."""
+    fake_page = MagicMock(spec=ft.Page)
+    ui = ActivityTrackerUI(fake_page, memory_db)
+    ui._on_guest_login()
+    ui.health_mgr.connect()
+    ui.health_mgr.handle_sensor_step_event(1000)
+
+    fake_evt = MagicMock()
+    fake_evt.raw_steps = 1500
+    ui.current_tab = 0
+    ui._on_native_sensor_step(fake_evt)
+    assert get_hardware_sensor_steps(memory_db) == 500
+
