@@ -230,6 +230,7 @@ class ActivityTrackerUI:
             try:
                 self.native_health_service = FletHealthSteps(
                     on_sensor_step=self._on_native_sensor_step,
+                    on_pedestrian_status=self._on_native_pedestrian_status,
                     on_sensor_error=self._on_native_sensor_error,
                 )
             except RuntimeError:
@@ -853,11 +854,22 @@ class ActivityTrackerUI:
     def _is_mobile_client(self) -> bool:
         """Return True when running natively on Android or iOS (non-web)."""
         is_web = getattr(self.page, "web", False) is True
+        if is_web:
+            return False
         platform_val = getattr(self.page, "platform", None)
-        return not is_web and platform_val in (
+        env_platform = (os.getenv("FLET_PLATFORM") or "").lower()
+        return platform_val in (
             ft.PagePlatform.ANDROID,
             ft.PagePlatform.IOS,
-        )
+        ) or env_platform in ("android", "ios")
+
+    def _on_native_pedestrian_status(self, e: Any) -> None:
+        """Update live pedestrian status ('walking' / 'stopped') from sensor."""
+        status = getattr(e, "status", "")
+        if status:
+            self.health_mgr.set_pedestrian_status(str(status))
+            if self.current_user is not None and self.current_tab == 0:
+                self.render_tab(0)
 
     def _on_native_sensor_step(self, e: Any) -> None:
         """Handle live hardware step sensor reading from Android/iOS."""
@@ -1093,6 +1105,20 @@ class ActivityTrackerUI:
                 if summary.get("last_synced_at")
                 else tr("health_not_synced", self.lang)
             )
+            source_parts = [f"Source: {summary['source_label']}"]
+            if summary["is_native"]:
+                if summary.get("raw_sensor_steps") is not None:
+                    source_parts.append(f"Sensor: {summary['raw_sensor_steps']:,}")
+                if summary.get("hc_steps") is not None:
+                    source_parts.append(f"HC: {summary['hc_steps']:,}")
+                if summary.get("pedestrian_status"):
+                    source_parts.append(summary["pedestrian_status"])
+            diag_text = ft.Text(
+                " • ".join(source_parts),
+                size=11,
+                color=COLOR_MINT if summary["is_native"] else t["subtext"],
+                weight=ft.FontWeight.W_600,
+            )
             time_text = ft.Text(
                 tr("health_last_sync", self.lang, time=sync_time),
                 size=11,
@@ -1140,6 +1166,7 @@ class ActivityTrackerUI:
                     ],
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                 ),
+                diag_text,
                 ft.Container(height=4),
                 action_row,
             ])
@@ -2501,7 +2528,16 @@ def main(page: ft.Page) -> None:
             ),
         ],
     )
-    page.add(controller.header_container, controller.body_container)
+    page.add(
+        ft.SafeArea(
+            content=ft.Column(
+                [controller.header_container, controller.body_container],
+                expand=True,
+                spacing=12,
+            ),
+            expand=True,
+        )
+    )
     controller.render_tab(initial_tab)
 
 

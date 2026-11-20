@@ -62,7 +62,11 @@ class HealthConnectManager:
         self.db = db
         self.native_service = native_service
         self._simulated_steps = initial_simulated_steps
-        self._last_source = "Health Connect + Sensor" if native_service else "Simulator"
+        self._last_source = "Health Connect + Sensor" if native_service else "Demo Simulator"
+        self._last_hc_steps: int | None = None
+        self._last_raw_sensor_steps: int | None = None
+        self._last_pedestrian_status: str = ""
+        self._last_perms: dict[str, Any] = {}
         today = date.today()
         self._simulated_history: dict[str, int] = {
             (today - timedelta(days=6)).strftime(DATE_FMT): 8200,
@@ -79,6 +83,10 @@ class HealthConnectManager:
         self.native_service = native_service
         if native_service is not None:
             self._last_source = "Health Connect + Sensor"
+
+    def set_pedestrian_status(self, status: str) -> None:
+        """Store latest live pedestrian status ('walking', 'stopped', etc.)."""
+        self._last_pedestrian_status = (status or "").strip()
 
     @property
     def is_on_android(self) -> bool:
@@ -173,6 +181,7 @@ class HealthConnectManager:
 
     def handle_sensor_step_event(self, raw_steps: int) -> dict[str, Any]:
         """Process a live TYPE_STEP_COUNTER reading from the hardware pedometer."""
+        self._last_raw_sensor_steps = int(raw_steps)
         today_str = date.today().strftime(DATE_FMT)
         sensor_state = record_hardware_sensor_steps(self.db, raw_steps, log_date=today_str)
         sensor_today = int(sensor_state["today_sensor_steps"])
@@ -232,6 +241,8 @@ class HealthConnectManager:
         """Request mobile permissions, start live pedometer, and perform hybrid sync."""
         if self.native_service is not None:
             perms = await self.native_service.request_permissions()
+            if isinstance(perms, dict):
+                self._last_perms = perms
             hc_status = await self.native_service.check_health_connect_status()
             self.connect()
             sync_res = await self.sync_hybrid_async()
@@ -276,9 +287,12 @@ class HealthConnectManager:
                 await self.native_service.start_pedometer()
                 raw_info = await self.native_service.get_latest_raw_steps()
             if isinstance(raw_info, dict) and raw_info.get("raw_steps") is not None:
+                self._last_raw_sensor_steps = int(raw_info["raw_steps"])
                 record_hardware_sensor_steps(
                     self.db, int(raw_info["raw_steps"]), log_date=today_str
                 )
+            if isinstance(raw_info, dict) and raw_info.get("pedestrian_status"):
+                self._last_pedestrian_status = str(raw_info["pedestrian_status"])
         except (RuntimeError, ValueError, TypeError, TimeoutError, OSError, TrackerError) as exc:
             logging.getLogger(__name__).debug("Hardware pedometer query skipped: %s", exc)
 
@@ -291,6 +305,7 @@ class HealthConnectManager:
 
         # 4. Merge today's Health Connect count with hardware sensor & existing log
         hc_today = hc_steps_map.get(today_str, 0) if hc_ok else 0
+        self._last_hc_steps = hc_today if hc_ok else None
         sensor_today = get_hardware_sensor_steps(self.db, today_str)
         existing_today = self._get_persisted_today_steps()
         merged_today = max(hc_today, sensor_today, existing_today)
@@ -370,6 +385,11 @@ class HealthConnectManager:
             "progress_ratio": pct,
             "goal_reached": today_steps >= target,
             "provider_name": provider,
+            "source_label": self._last_source if self.is_native else "Demo Simulator",
+            "hc_steps": self._last_hc_steps,
+            "raw_sensor_steps": self._last_raw_sensor_steps,
+            "pedestrian_status": self._last_pedestrian_status,
+            "permissions": self._last_perms,
             "play_store_url": PLAY_STORE_HEALTH_CONNECT_URL,
             "privacy_rationale": PRIVACY_RATIONALE,
         }
