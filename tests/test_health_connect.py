@@ -374,3 +374,40 @@ def test_ui_native_sensor_event_updates_tab(memory_db):
     ui._on_native_sensor_step(fake_evt)
     assert get_hardware_sensor_steps(memory_db) == 500
 
+
+def test_flet_health_steps_event_dispatch():
+    """Verify Flet resolves SensorStepEvent, PedestrianStatusEvent, and SensorErrorEvent."""
+    from flet.messaging.connection import Connection
+    from flet.messaging.session import Session
+    from flet.pubsub.pubsub_hub import PubSubHub
+    from flet_health_steps import FletHealthSteps
+
+    received: list[tuple] = []
+    conn = MagicMock(spec=Connection)
+    conn.pubsubhub = PubSubHub()
+    sess = Session(conn)
+    sess.attach_connection(conn)
+    svc = FletHealthSteps(
+        on_sensor_step=lambda e: received.append(("step", e.raw_steps, e.timestamp)),
+        on_pedestrian_status=lambda e: received.append(("status", e.status)),
+        on_sensor_error=lambda e: received.append(("err", e.message)),
+    )
+    sess.get_page_patch()
+
+    async def _run() -> None:
+        await svc._trigger_event(
+            "sensor_step", {"raw_steps": 4321, "timestamp": "2026-11-20T15:50:00"}
+        )
+        await svc._trigger_event(
+            "pedestrian_status",
+            {"status": "walking", "timestamp": "2026-11-20T15:50:00"},
+        )
+        await svc._trigger_event("sensor_error", {"message": "ok"})
+
+    asyncio.run(_run())
+    assert received == [
+        ("step", 4321, "2026-11-20T15:50:00"),
+        ("status", "walking"),
+        ("err", "ok"),
+    ]
+

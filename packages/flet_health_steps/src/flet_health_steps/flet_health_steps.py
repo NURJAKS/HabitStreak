@@ -1,7 +1,5 @@
 """Python Flet Service wrapper for the hybrid Health Connect + Pedometer extension."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Any
 
